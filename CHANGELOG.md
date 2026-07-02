@@ -35,3 +35,6 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ### Security
 - N/A
+
+## Notes
+- This software is proprietary and confidential. All rights reserved by Silvexis.

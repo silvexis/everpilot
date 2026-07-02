@@ -228,4 +228,5 @@ Bug reports and feature requests are welcome via [GitHub Issues](https://github.
 
 ## License
 
-MIT
+Proprietary and confidential. Copyright © 2026 Silvexis. All rights reserved.
+Unauthorized use, copying, or distribution is strictly prohibited.
