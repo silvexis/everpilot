@@ -18,6 +18,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Landing page with hero, capabilities grid, and mode explanations
 - Dashboard page listing installed repositories
 - Repo detail page with live capability toggles
+- Comprehensive README with setup instructions, env var reference,
+  GitHub App creation guide, API reference, and deployment docs
 
 ### Changed
 - N/A
