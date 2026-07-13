@@ -9,6 +9,7 @@ OWNER, REPO_NAME = REPO.split("/")
 def reset_repo_store():
     """Clear the in-memory store between tests."""
     from everpilot.api import repos as repos_module
+
     repos_module._repo_configs.clear()
     yield
     repos_module._repo_configs.clear()
