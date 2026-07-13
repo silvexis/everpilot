@@ -26,7 +26,7 @@ Each capability is **independently toggleable** with three operating modes:
 
 ```
 everpilot/
-├── backend/                 # Python 3.12 · FastAPI · uv
+├── backend/                 # Python 3.13 · FastAPI · uv
 │   ├── src/everpilot/
 │   │   ├── api/             # health, repos, webhooks routers
 │   │   ├── models/          # Capability, RepoConfig Pydantic models
@@ -54,7 +54,7 @@ everpilot/
 | [Node.js](https://nodejs.org/) | ≥ 22 | [nodejs.org](https://nodejs.org/) or `brew install node` |
 | [GitHub CLI](https://cli.github.com/) | any | `brew install gh` |
 
-Python 3.12 is managed automatically by `uv` — no manual install needed.
+Python 3.13 is managed automatically by `uv` — no manual install needed.
 
 ## Setup
 
@@ -75,7 +75,7 @@ cp .env.example .env
 Open `.env` and fill in your GitHub App credentials (see [Creating a GitHub App](#creating-a-github-app) below).
 
 ```bash
-uv sync --all-groups   # installs Python 3.12 + all dependencies
+uv sync --all-groups   # installs Python 3.13 + all dependencies
 ```
 
 Start the API server:
