@@ -50,7 +50,6 @@ venv/
 
 # uv
 backend/.venv/
-backend/uv.lock
 
 # Test / lint caches
 .pytest_cache/
