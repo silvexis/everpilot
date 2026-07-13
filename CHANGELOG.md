@@ -22,7 +22,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
   GitHub App creation guide, API reference, and deployment docs
 
 ### Changed
-- N/A
+- Upgrade backend to Python 3.13
 
 ### Deprecated
 - N/A
