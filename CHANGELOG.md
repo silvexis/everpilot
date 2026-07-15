@@ -25,6 +25,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
   `merge_blocked` / `suppressed`)
 - Task read API for the dashboard: `GET /api/v1/tasks` (repository/state filters),
   `GET /api/v1/tasks/{id}`, `GET /api/v1/tasks/{id}/audit`
+- Dependency detection engine (M3): uv.lock / package-lock.json parsers, OSV.dev
+  batch vulnerability client, PyPI/npm registry latest-version lookups, and
+  `DependencyDetector` producing outdated/vulnerable reports with bump classification
 
 ### Fixed
 - Audit trail recorded the wrong `from` state on transitions (post-mutation aliasing

@@ -112,6 +112,8 @@ Both capabilities are thin layers over the M2 pipeline.
       (npm/pnpm) — others post-V1
 - [ ] Detect outdated/vulnerable dependencies on schedule and on lockfile-touching
       pushes (OSV.dev for advisories; PyPI JSON API / npm registry for versions)
+      *(PR #11 — detection engine done: lockfile parsers, OSV batch client,
+      registry lookups, `DependencyDetector`; schedule/push triggers still to wire)*
 - [ ] Upgrade PRs with changelog/breaking-change summaries, verified by the repo's
       own CI
 - [ ] Batch strategy: group compatible minor/patch bumps; majors always solo PRs
