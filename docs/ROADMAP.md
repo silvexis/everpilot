@@ -101,8 +101,10 @@ The state machine every capability rides on.
       never auto-merged; `task.rolled_back` audit event)*
 - [ ] Full audit trail: every trigger, decision, PR, merge, and failure queryable
       per repo and per org
-- [ ] Run logs and diffs viewable in the dashboard *(PR #10 — read API:
-      GET /tasks, /tasks/{id}, /tasks/{id}/audit; frontend page still to come)*
+- [x] Run logs and diffs viewable in the dashboard *(PR #10 — read API;
+      PR #14 — Tasks list + detail pages with audit timeline and rollback button.
+      Diff view links to the GitHub PR; full run-log streaming depends on the
+      M1 engine choice)*
 
 ## M3 — V1 capabilities
 
