@@ -25,6 +25,17 @@ export function Navbar() {
             >
               Dashboard
             </Link>
+            <Link
+              to="/tasks"
+              className={clsx(
+                'text-sm font-medium transition-colors',
+                pathname.startsWith('/tasks')
+                  ? 'text-indigo-600'
+                  : 'text-gray-500 hover:text-gray-900',
+              )}
+            >
+              Tasks
+            </Link>
             <a
               href="https://github.com/silvexis/everpilot"
               target="_blank"

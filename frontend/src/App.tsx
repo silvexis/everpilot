@@ -4,6 +4,8 @@ import { Navbar } from '@/components/Navbar'
 import { LandingPage } from '@/pages/LandingPage'
 import { DashboardPage } from '@/pages/DashboardPage'
 import { RepoDetailPage } from '@/pages/RepoDetailPage'
+import { TasksPage } from '@/pages/TasksPage'
+import { TaskDetailPage } from '@/pages/TaskDetailPage'
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -21,6 +23,8 @@ function App() {
             <Route path="/" element={<LandingPage />} />
             <Route path="/dashboard" element={<DashboardPage />} />
             <Route path="/dashboard/:owner/:repo" element={<RepoDetailPage />} />
+            <Route path="/tasks" element={<TasksPage />} />
+            <Route path="/tasks/:taskId" element={<TaskDetailPage />} />
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
         </div>

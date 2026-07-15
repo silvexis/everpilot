@@ -1,4 +1,4 @@
-import type { CapabilityKey, CapabilityMode, RepoConfig } from '@/types'
+import type { AuditEvent, CapabilityKey, CapabilityMode, RepoConfig, Task, TaskState } from '@/types'
 
 const BASE = '/api/v1'
 
@@ -51,6 +51,23 @@ export const api = {
     const [owner, repo] = fullName.split('/')
     return request<void>(`/repos/${owner}/${repo}`, { method: 'DELETE' })
   },
+
+  /** List tasks, optionally filtered by state. */
+  listTasks: (state?: TaskState) =>
+    request<Task[]>(`/tasks${state ? `?state=${state}` : ''}`),
+
+  /** Get one task. */
+  getTask: (taskId: number) => request<Task>(`/tasks/${taskId}`),
+
+  /** Get a task's audit trail (oldest first). */
+  getTaskAudit: (taskId: number) => request<AuditEvent[]>(`/tasks/${taskId}/audit`),
+
+  /** Open a revert PR for a merged task. */
+  rollbackTask: (taskId: number, reason: string) =>
+    request<{ revert_pr_number: number }>(`/tasks/${taskId}/rollback`, {
+      method: 'POST',
+      body: JSON.stringify({ reason, actor: 'dashboard' }),
+    }),
 
   /** Health check. */
   health: () => request<{ status: string; version: string; service: string }>('/health'),
