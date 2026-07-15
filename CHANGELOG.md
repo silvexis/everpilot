@@ -23,6 +23,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
   suppression, Assisted human review, Autopilot merge gates), optimistic-concurrency
   state transitions, and a full audit trail (`task.created` / `state_changed` /
   `merge_blocked` / `suppressed`)
+- Task read API for the dashboard: `GET /api/v1/tasks` (repository/state filters),
+  `GET /api/v1/tasks/{id}`, `GET /api/v1/tasks/{id}/audit`
+
+### Fixed
+- Audit trail recorded the wrong `from` state on transitions (post-mutation aliasing
+  in the in-memory store); pipeline now captures the state before transitioning
 
 ### Changed
 - Repos API now uses dependency-injected storage instead of a module-global dict
@@ -37,9 +43,6 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - N/A
 
 ### Removed
-- N/A
-
-### Fixed
 - N/A
 
 ## [0.1.0] - 2026-07-15

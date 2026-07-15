@@ -81,14 +81,15 @@ class TaskPipeline:
         task = await self._tasks.get(task_id)
         if task is None:
             raise KeyError(f"task {task_id} not found")
+        current_state = task.state
         if not task.can_transition_to(new_state):
-            raise InvalidTransitionError(task_id, task.state, new_state)
+            raise InvalidTransitionError(task_id, current_state, new_state)
 
-        updated = await self._tasks.transition(task_id, task.state, new_state)
+        updated = await self._tasks.transition(task_id, current_state, new_state)
         if updated is None:
             # Lost a race: someone else transitioned first. Re-read and refuse.
             refreshed = await self._tasks.get(task_id)
-            current = refreshed.state if refreshed else task.state
+            current = refreshed.state if refreshed else current_state
             raise InvalidTransitionError(task_id, current, new_state)
 
         await self._audit.append(
@@ -97,7 +98,7 @@ class TaskPipeline:
                 task_id=task_id,
                 actor=actor,
                 event_type="task.state_changed",
-                payload={"from": task.state, "to": new_state},
+                payload={"from": current_state, "to": new_state},
             )
         )
         return updated
