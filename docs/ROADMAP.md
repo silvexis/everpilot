@@ -96,7 +96,9 @@ The state machine every capability rides on.
 - [x] Autopilot merge gates: CI green, no conflicts, respects branch protection,
       per-repo daily task cap *(PR #9 — `MergeGates`; a failed gate holds the
       task at pr_open with an auditable `task.merge_blocked` event)*
-- [ ] Rollback: one-click revert PR for any Everpilot-merged change
+- [x] Rollback: one-click revert PR for any Everpilot-merged change *(PR #13 —
+      `POST /tasks/{id}/rollback` via GraphQL revertPullRequest; revert PRs are
+      never auto-merged; `task.rolled_back` audit event)*
 - [ ] Full audit trail: every trigger, decision, PR, merge, and failure queryable
       per repo and per org
 - [ ] Run logs and diffs viewable in the dashboard *(PR #10 — read API:
