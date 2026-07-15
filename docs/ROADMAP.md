@@ -116,7 +116,9 @@ Both capabilities are thin layers over the M2 pipeline.
       registry lookups, `DependencyDetector`; schedule/push triggers still to wire)*
 - [ ] Upgrade PRs with changelog/breaking-change summaries, verified by the repo's
       own CI
-- [ ] Batch strategy: group compatible minor/patch bumps; majors always solo PRs
+- [x] Batch strategy: group compatible minor/patch bumps; majors always solo PRs
+      *(PR #12 — `plan_batches`: security solos first, then major solos, then one
+      grouped minor/patch batch per ecosystem)*
 
 ### Issue Triage
 

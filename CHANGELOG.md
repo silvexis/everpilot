@@ -28,6 +28,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Dependency detection engine (M3): uv.lock / package-lock.json parsers, OSV.dev
   batch vulnerability client, PyPI/npm registry latest-version lookups, and
   `DependencyDetector` producing outdated/vulnerable reports with bump classification
+- Upgrade batch planning: security and major bumps as solo PRs, minor/patch grouped
+  per ecosystem
 
 ### Fixed
 - Audit trail recorded the wrong `from` state on transitions (post-mutation aliasing
