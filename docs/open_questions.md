@@ -36,6 +36,14 @@ Claude Code's permission settings deny access to `.env*` files, so
 variable (documented in README instead). Add it manually:
 `DATABASE_URL=postgresql://everpilot:everpilot@localhost:5432/everpilot`
 
+## 2026-07-15 — DBOS integration lacks integration tests
+
+Unit tests cover the dispatch wiring with fakes, but DBOS's durable behavior
+(checkpointing, recovery, queue concurrency) is untested — it requires a real
+Postgres. Recommend: add a `postgres` service container to the CI workflow and
+an integration-test marker (`pytest -m integration`) exercising one durable
+workflow end-to-end before M2 builds the task pipeline on this foundation.
+
 ## 2026-07-15 — Anthropic API credentials
 
 M1 spike and all agent execution need an Anthropic API key provisioned for the

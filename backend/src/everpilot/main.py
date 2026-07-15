@@ -12,6 +12,7 @@ from everpilot.db import InMemoryRepoConfigStore, PostgresRepoConfigStore, creat
 from everpilot.db.deliveries import InMemoryWebhookDeliveryStore, PostgresWebhookDeliveryStore
 from everpilot.db.installations import InMemoryInstallationStore, PostgresInstallationStore
 from everpilot.github.installations import InstallationService
+from everpilot.orchestration import InlineEventDispatcher
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s — %(message)s")
 logger = logging.getLogger(__name__)
@@ -30,6 +31,9 @@ def create_app() -> FastAPI:
             app.state.repo_store = PostgresRepoConfigStore(pool)
             app.state.webhook_deliveries = PostgresWebhookDeliveryStore(pool)
             app.state.installation_service = InstallationService(PostgresInstallationStore(pool))
+            from everpilot.orchestration import dbos_engine
+
+            dbos_engine.bind_installation_service(app.state.installation_service)
             logger.info("Connected to Postgres")
         else:
             logger.warning("DATABASE_URL not set — using in-memory store (development only)")
@@ -51,6 +55,16 @@ def create_app() -> FastAPI:
     app.state.repo_store = InMemoryRepoConfigStore()
     app.state.webhook_deliveries = InMemoryWebhookDeliveryStore()
     app.state.installation_service = InstallationService(InMemoryInstallationStore())
+    app.state.event_dispatcher = InlineEventDispatcher(app.state.installation_service)
+
+    if settings.database_url:
+        # Durable event processing: DBOS checkpoints workflows in Postgres and
+        # hooks the app lifespan itself.
+        from everpilot.orchestration import dbos_engine
+
+        app.state.event_dispatcher = dbos_engine.init_dbos(
+            app, settings.app_name, settings.database_url
+        )
 
     app.add_middleware(
         CORSMiddleware,

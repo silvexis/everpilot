@@ -3,12 +3,12 @@ import hmac
 import logging
 from typing import Annotated
 
-from fastapi import APIRouter, BackgroundTasks, Depends, Header, HTTPException, Request, status
+from fastapi import APIRouter, Depends, Header, HTTPException, Request, status
 from pydantic import BaseModel
 
 from everpilot.config import get_settings
 from everpilot.db.deliveries import WebhookDeliveryStore
-from everpilot.github.installations import InstallationService
+from everpilot.orchestration import EventDispatcher
 
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/webhooks", tags=["webhooks"])
@@ -18,7 +18,12 @@ def get_delivery_store(request: Request) -> WebhookDeliveryStore:
     return request.app.state.webhook_deliveries
 
 
+def get_event_dispatcher(request: Request) -> EventDispatcher:
+    return request.app.state.event_dispatcher
+
+
 DeliveryStoreDep = Annotated[WebhookDeliveryStore, Depends(get_delivery_store)]
+DispatcherDep = Annotated[EventDispatcher, Depends(get_event_dispatcher)]
 
 
 class WebhookResponse(BaseModel):
@@ -33,36 +38,11 @@ def _verify_signature(payload: bytes, signature: str, secret: str) -> bool:
     return hmac.compare_digest(expected, signature)
 
 
-async def _handle_event(
-    event: str,
-    payload: dict,  # type: ignore[type-arg]
-    installations: InstallationService,
-) -> None:
-    """Dispatch GitHub webhook events to the appropriate handler."""
-    logger.info("Processing GitHub event: %s", event)
-
-    match event:
-        case "push":
-            logger.debug("Push event on %s", payload.get("repository", {}).get("full_name"))
-        case "issues":
-            action = payload.get("action")
-            logger.debug("Issue %s on %s", action, payload.get("repository", {}).get("full_name"))
-        case "pull_request":
-            action = payload.get("action")
-            logger.debug("PR %s on %s", action, payload.get("repository", {}).get("full_name"))
-        case "installation":
-            await installations.handle_installation(payload)
-        case "installation_repositories":
-            await installations.handle_installation_repositories(payload)
-        case _:
-            logger.debug("Unhandled event type: %s", event)
-
-
 @router.post("/github", response_model=WebhookResponse)
 async def github_webhook(
     request: Request,
-    background_tasks: BackgroundTasks,
     deliveries: DeliveryStoreDep,
+    dispatcher: DispatcherDep,
     x_github_event: str = Header(...),
     x_github_delivery: str = Header(""),
     x_hub_signature_256: str = Header(""),
@@ -93,8 +73,6 @@ async def github_webhook(
         return WebhookResponse(accepted=False, event=x_github_event, duplicate=True)
 
     payload = await request.json()
-    background_tasks.add_task(
-        _handle_event, x_github_event, payload, request.app.state.installation_service
-    )
+    await dispatcher.dispatch(x_github_event, payload)
 
     return WebhookResponse(accepted=True, event=x_github_event)

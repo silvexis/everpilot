@@ -50,14 +50,16 @@ on this.
       created/deleted/suspend/unsuspend + repo add/remove, idempotent upserts)*
 - [x] GitHub App auth: installation-token minting, caching, and refresh
       *(PR #6 — githubkit auth strategies via `GitHubAppClients` factory)*
-- [ ] Webhook ingestion hardened: HMAC verification (exists), plus idempotency
+- [x] Webhook ingestion hardened: HMAC verification (exists), plus idempotency
       keys, replay protection, and dead-letter handling *(PR #6 — fail-closed
-      signature checks, delivery-GUID dedup w/ migration 0003; dead-letter
-      deferred to DBOS integration below)*
-- [ ] Background job orchestration via DBOS Transact (webhook events → durable
+      signature checks, delivery-GUID dedup w/ migration 0003; PR #8 — failed
+      events persist as retriable DBOS workflows, covering dead-letter)*
+- [x] Background job orchestration via DBOS Transact (webhook events → durable
       Python workflows checkpointed in Postgres); no work executes inside the
       request path. Keep workflow logic cleanly separated so a future migration
-      to native AWS orchestration at scale stays tractable
+      to native AWS orchestration at scale stays tractable *(PR #8 —
+      `EventDispatcher` protocol: inline for dev, DBOS queue when DATABASE_URL
+      set; handlers stay engine-agnostic plain functions)*
 - [ ] Backend deployment target on AWS (API + workers), IaC from day one
 
 ## M1 — Agent engine spike ⚠ decision gate
