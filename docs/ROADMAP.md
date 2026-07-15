@@ -45,8 +45,9 @@ on this.
 - [x] Core data model: `organizations`, `users`, `installations`, `repositories`,
       `capability_configs`, `tasks`, `runs`, `audit_events` *(PR #5 — migration
       0002 + domain models incl. task state machine with legal transitions)*
-- [ ] GitHub App installation lifecycle: install/uninstall webhooks create and
-      tear down tenant state
+- [x] GitHub App installation lifecycle: install/uninstall webhooks create and
+      tear down tenant state *(PR #7 — `InstallationService` handles
+      created/deleted/suspend/unsuspend + repo add/remove, idempotent upserts)*
 - [x] GitHub App auth: installation-token minting, caching, and refresh
       *(PR #6 — githubkit auth strategies via `GitHubAppClients` factory)*
 - [ ] Webhook ingestion hardened: HMAC verification (exists), plus idempotency

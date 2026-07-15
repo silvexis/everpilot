@@ -15,6 +15,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - GitHub App auth: `GitHubAppClients` factory (githubkit app/installation strategies)
 - Webhook replay protection: delivery-GUID dedup store (in-memory + Postgres,
   migration 0003)
+- Installation lifecycle: `installation` / `installation_repositories` webhook events
+  now create, suspend, and tear down tenant state (orgs, installations, repositories)
 
 ### Changed
 - Repos API now uses dependency-injected storage instead of a module-global dict
