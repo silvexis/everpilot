@@ -44,6 +44,19 @@ Postgres. Recommend: add a `postgres` service container to the CI workflow and
 an integration-test marker (`pytest -m integration`) exercising one durable
 workflow end-to-end before M2 builds the task pipeline on this foundation.
 
+## 2026-07-15 — IaC tooling never decided
+
+The M0 item "Backend deployment target on AWS (API + workers), IaC from day
+one" is blocked on your Terraform vs. CDK vs. Pulumi preference (flagged during
+the stack research, never answered). Everything else in M0 is done.
+
+## 2026-07-15 — Third-party account provisioning (M4)
+
+M4 needs accounts + API keys only you can create: WorkOS (AuthKit), Stripe
+(Billing Meters), Resend. Code can be built against their test modes once
+sandbox keys exist. Without them, M4 items will be stubbed behind interfaces
+like the agent engine is.
+
 ## 2026-07-15 — Anthropic API credentials
 
 M1 spike and all agent execution need an Anthropic API key provisioned for the
