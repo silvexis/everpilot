@@ -6,6 +6,26 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ## [Unreleased]
 ### Added
+- N/A
+
+### Changed
+- N/A
+
+### Deprecated
+- N/A
+
+### Removed
+- N/A
+
+### Fixed
+- N/A
+
+### Security
+- N/A
+
+## [0.1.0] - 2026-07-15
+### Added
+- V1 roadmap (`docs/ROADMAP.md`) with locked stack decisions
 - Initial project setup and structure
 - Python/FastAPI backend with uv package management
 - React/TypeScript/Vite frontend
@@ -23,6 +43,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ### Changed
 - Upgrade backend to Python 3.13
+- Replace PyGithub with githubkit (async, typed, GitHub App auth) per roadmap decision
+- Track `backend/uv.lock` for reproducible builds
+- Update GitHub Actions to latest majors (checkout v7, setup-uv v8, setup-node v7)
 
 ### Deprecated
 - N/A
