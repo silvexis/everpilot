@@ -23,7 +23,8 @@ action in an audit trail, and get billed for the work performed.
 | Agent engine | Undecided — resolved by the M1 spike (see below) |
 | Auth provider | WorkOS AuthKit (email/password + GitHub/Google OAuth, orgs/RBAC) |
 | Billing | Stripe Billing Meters, usage-based (per completed task / merged PR); no third-party metering layer |
-| Datastore | PostgreSQL (RDS/Aurora), raw psycopg3 (async) — no ORM; Alembic for migrations |
+| Datastore | PostgreSQL (RDS/Aurora), raw psycopg3 (async) — no ORM |
+| Migrations | Alembic (hand-written migrations; pulls in SQLAlchemy Core as a dependency only, ORM stays unused) |
 | GitHub API client | githubkit (async, typed, GitHub App auth + webhook models); replaces PyGithub |
 | Vulnerability data | OSV.dev API (primary); PyPI JSON API / npm registry for latest versions |
 | Version parsing | `packaging` (PEP 440) + `semantic-version` (npm ranges) |
