@@ -8,6 +8,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from everpilot import __description__, __version__
 from everpilot.api import api_router
 from everpilot.config import get_settings
+from everpilot.db import InMemoryRepoConfigStore, PostgresRepoConfigStore, create_pool
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s — %(message)s")
 logger = logging.getLogger(__name__)
@@ -19,7 +20,17 @@ def create_app() -> FastAPI:
     @asynccontextmanager
     async def lifespan(app: FastAPI) -> AsyncIterator[None]:
         logger.info("Everpilot API v%s starting in %s mode", __version__, settings.app_env)
+        pool = None
+        if settings.database_url:
+            pool = create_pool(settings.database_url)
+            await pool.open(wait=True)
+            app.state.repo_store = PostgresRepoConfigStore(pool)
+            logger.info("Connected to Postgres")
+        else:
+            logger.warning("DATABASE_URL not set — using in-memory store (development only)")
         yield
+        if pool is not None:
+            await pool.close()
         logger.info("Everpilot API shutting down")
 
     app = FastAPI(
@@ -30,6 +41,9 @@ def create_app() -> FastAPI:
         redoc_url="/redoc" if settings.debug else None,
         lifespan=lifespan,
     )
+
+    # Default store; the lifespan swaps in Postgres when DATABASE_URL is set
+    app.state.repo_store = InMemoryRepoConfigStore()
 
     app.add_middleware(
         CORSMiddleware,

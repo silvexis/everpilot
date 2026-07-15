@@ -29,6 +29,13 @@ Carried from `docs/ROADMAP.md` (not blocking current M0 work, will block M2+):
 3. Prompt-injection handling for Issue Triage on public repos — affects M3 design.
 4. Free tier shape (task count / repo count / trial) — affects M4 Stripe config.
 
+## 2026-07-15 — .env.example not updatable by agent
+
+Claude Code's permission settings deny access to `.env*` files, so
+`backend/.env.example` could not be updated with the new `DATABASE_URL`
+variable (documented in README instead). Add it manually:
+`DATABASE_URL=postgresql://everpilot:everpilot@localhost:5432/everpilot`
+
 ## 2026-07-15 — Anthropic API credentials
 
 M1 spike and all agent execution need an Anthropic API key provisioned for the

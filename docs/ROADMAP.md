@@ -39,8 +39,9 @@ action in an audit trail, and get billed for the work performed.
 Replace the boilerplate internals with production plumbing. Everything else builds
 on this.
 
-- [ ] PostgreSQL persistence layer (psycopg3, Alembic migrations); delete the
-      in-memory repo store
+- [x] PostgreSQL persistence layer (psycopg3, Alembic migrations); delete the
+      in-memory repo store *(PR #4 — store protocol + Postgres/in-memory impls;
+      in-memory remains as the test/dev double, Postgres used when DATABASE_URL set)*
 - [ ] Core data model: `organizations`, `users`, `installations`, `repositories`,
       `capability_configs`, `tasks`, `runs`, `audit_events`
 - [ ] GitHub App installation lifecycle: install/uninstall webhooks create and
