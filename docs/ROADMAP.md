@@ -86,14 +86,16 @@ Evaluation criteria:
 
 The state machine every capability rides on.
 
-- [ ] Task lifecycle: `triggered → queued → planning → executing → pr_open →
-      (merged | rejected | failed)` with persisted transitions
-- [ ] Mode enforcement per capability per repo:
+- [x] Task lifecycle: `triggered → queued → planning → executing → pr_open →
+      (merged | rejected | failed)` with persisted transitions *(PR #9 —
+      `TaskPipeline` + `TaskStore` with optimistic-concurrency transitions)*
+- [x] Mode enforcement per capability per repo: *(PR #9)*
   - **Off**: events ignored, recorded as suppressed in audit log
   - **Assisted**: PR opened, task waits on human review; approval/close resolves it
   - **Autopilot**: PR merges automatically **only** behind merge gates
-- [ ] Autopilot merge gates: CI green, no conflicts, respects branch protection,
-      per-repo daily task cap
+- [x] Autopilot merge gates: CI green, no conflicts, respects branch protection,
+      per-repo daily task cap *(PR #9 — `MergeGates`; a failed gate holds the
+      task at pr_open with an auditable `task.merge_blocked` event)*
 - [ ] Rollback: one-click revert PR for any Everpilot-merged change
 - [ ] Full audit trail: every trigger, decision, PR, merge, and failure queryable
       per repo and per org
