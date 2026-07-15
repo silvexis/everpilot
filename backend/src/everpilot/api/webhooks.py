@@ -8,6 +8,7 @@ from pydantic import BaseModel
 
 from everpilot.config import get_settings
 from everpilot.db.deliveries import WebhookDeliveryStore
+from everpilot.github.installations import InstallationService
 
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/webhooks", tags=["webhooks"])
@@ -32,7 +33,11 @@ def _verify_signature(payload: bytes, signature: str, secret: str) -> bool:
     return hmac.compare_digest(expected, signature)
 
 
-async def _handle_event(event: str, payload: dict) -> None:  # type: ignore[type-arg]
+async def _handle_event(
+    event: str,
+    payload: dict,  # type: ignore[type-arg]
+    installations: InstallationService,
+) -> None:
     """Dispatch GitHub webhook events to the appropriate handler."""
     logger.info("Processing GitHub event: %s", event)
 
@@ -45,8 +50,10 @@ async def _handle_event(event: str, payload: dict) -> None:  # type: ignore[type
         case "pull_request":
             action = payload.get("action")
             logger.debug("PR %s on %s", action, payload.get("repository", {}).get("full_name"))
-        case "installation" | "installation_repositories":
-            logger.info("App installation event: %s", payload.get("action"))
+        case "installation":
+            await installations.handle_installation(payload)
+        case "installation_repositories":
+            await installations.handle_installation_repositories(payload)
         case _:
             logger.debug("Unhandled event type: %s", event)
 
@@ -86,6 +93,8 @@ async def github_webhook(
         return WebhookResponse(accepted=False, event=x_github_event, duplicate=True)
 
     payload = await request.json()
-    background_tasks.add_task(_handle_event, x_github_event, payload)
+    background_tasks.add_task(
+        _handle_event, x_github_event, payload, request.app.state.installation_service
+    )
 
     return WebhookResponse(accepted=True, event=x_github_event)
