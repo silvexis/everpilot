@@ -21,9 +21,15 @@ action in an audit trail, and get billed for the work performed.
 | V1 capabilities | Dependencies, Issue Triage |
 | Operating modes | All three: Autopilot, Assisted, Off |
 | Agent engine | Undecided — resolved by the M1 spike (see below) |
-| Dashboard auth | Email/password + OAuth providers |
-| Billing model | Usage-based (per completed agent task / merged PR) |
-| Datastore | PostgreSQL (RDS/Aurora), psycopg3, migrations |
+| Auth provider | WorkOS AuthKit (email/password + GitHub/Google OAuth, orgs/RBAC) |
+| Billing | Stripe Billing Meters, usage-based (per completed task / merged PR); no third-party metering layer |
+| Datastore | PostgreSQL (RDS/Aurora), raw psycopg3 (async) — no ORM; Alembic for migrations |
+| GitHub API client | githubkit (async, typed, GitHub App auth + webhook models); replaces PyGithub |
+| Vulnerability data | OSV.dev API (primary); PyPI JSON API / npm registry for latest versions |
+| Version parsing | `packaging` (PEP 440) + `semantic-version` (npm ranges) |
+| Transactional email | Resend |
+| Observability | Native CloudWatch (logs, metrics, alarms, X-Ray) |
+| Job orchestration | **Open** — DBOS Transact vs. Hatchet; decide alongside the M1 engine spike |
 
 ---
 
@@ -41,8 +47,10 @@ on this.
 - [ ] GitHub App auth: installation-token minting, caching, and refresh
 - [ ] Webhook ingestion hardened: HMAC verification (exists), plus idempotency
       keys, replay protection, and dead-letter handling
-- [ ] Background job queue (webhook events → durable queue → workers); no work
-      executes inside the request path
+- [ ] Background job orchestration (webhook events → durable workflows → workers);
+      no work executes inside the request path. Engine choice (DBOS Transact vs.
+      Hatchet) decided alongside the M1 spike — both are Postgres-backed and $0
+      at V1 scale
 - [ ] Backend deployment target on AWS (API + workers), IaC from day one
 
 ## M1 — Agent engine spike ⚠ decision gate
@@ -91,7 +99,7 @@ Both capabilities are thin layers over the M2 pipeline.
 - [ ] Ecosystem support at launch: Python (uv/pyproject) and JavaScript
       (npm/pnpm) — others post-V1
 - [ ] Detect outdated/vulnerable dependencies on schedule and on lockfile-touching
-      pushes
+      pushes (OSV.dev for advisories; PyPI JSON API / npm registry for versions)
 - [ ] Upgrade PRs with changelog/breaking-change summaries, verified by the repo's
       own CI
 - [ ] Batch strategy: group compatible minor/patch bumps; majors always solo PRs
@@ -106,24 +114,28 @@ Both capabilities are thin layers over the M2 pipeline.
 
 ## M4 — SaaS layer
 
-- [ ] Auth: email/password + OAuth (GitHub, Google) via a managed provider
-      (Cognito / Auth0 / WorkOS — pick during M4)
+- [ ] Auth: WorkOS AuthKit — email/password + OAuth (GitHub, Google), hosted UI,
+      orgs/RBAC; free to 1M MAU with per-connection SAML as the enterprise path
 - [ ] Org/team model mapped to GitHub App installations; admin and member roles
 - [ ] Self-serve onboarding: sign up → install GitHub App → pick repos → toggle
       capabilities and modes
 - [ ] Usage metering: every completed task and merged PR recorded as a billable
       event
-- [ ] Stripe integration: usage-based invoicing, free monthly allowance, payment
-      method management
+- [ ] Stripe integration: Billing Meters with per-event `identifier` idempotency;
+      free monthly allowance as a $0 first pricing tier; payment method management
 - [ ] Spend controls: per-org monthly budget cap that pauses agents when hit,
-      with alerting before the cap
+      with alerting before the cap. Enforced app-side against our own Postgres —
+      Stripe (and every vendor surveyed) provides alerts only, not hard caps
+- [ ] Transactional email via Resend (verification, notifications, receipts,
+      budget alerts)
 
 ## M5 — Launch hardening
 
 - [ ] Security review of the full surface (webhooks, token handling, agent
       sandbox, dashboard authz)
-- [ ] Observability: structured logs, metrics, tracing, alerting on task-failure
-      rate and queue depth
+- [ ] Observability on native CloudWatch: structured logs, metrics, X-Ray tracing,
+      alarms on task-failure rate and queue depth; log-retention policies set from
+      day one to control cost
 - [ ] Load testing on webhook bursts (org-wide installs, dependency-bot storms)
 - [ ] Public docs: setup guide, capability reference, mode semantics, billing FAQ
 - [ ] Marketing site + pricing page; ToS and privacy policy
@@ -148,10 +160,13 @@ Explicitly out of scope for V1, in rough priority order:
 
 Tracked here until each has an owner and a decision:
 
-1. LLM cost control: hard per-task token budget vs. adaptive? How is overrun
+1. Job orchestration engine: DBOS Transact (in-process, Postgres-only, lowest ops)
+   vs. Hatchet (separate orchestrator with dashboard, best per-repo concurrency
+   keys). Decide alongside the M1 agent-engine spike.
+2. LLM cost control: hard per-task token budget vs. adaptive? How is overrun
    surfaced to the customer?
-2. Autopilot trust ladder: should repos have to earn Autopilot (N successful
+3. Autopilot trust ladder: should repos have to earn Autopilot (N successful
    assisted merges first), or is opt-in enough?
-3. Issue Triage on public repos: how to handle prompt-injection attempts from
+4. Issue Triage on public repos: how to handle prompt-injection attempts from
    issue bodies?
-4. Free tier shape: task count, repo count, or trial period?
+5. Free tier shape: task count, repo count, or trial period?
