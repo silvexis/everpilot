@@ -18,6 +18,9 @@ class Settings(BaseSettings):
     github_client_id: str = ""
     github_client_secret: str = ""
 
+    # Database (empty = in-memory store, development only)
+    database_url: str = ""
+
     # API
     api_host: str = "0.0.0.0"
     api_port: int = 8000

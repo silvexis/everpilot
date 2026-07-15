@@ -6,10 +6,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ## [Unreleased]
 ### Added
-- N/A
+- PostgreSQL persistence layer: `RepoConfigStore` protocol with psycopg3 (async pool)
+  and in-memory implementations; Alembic migrations (`repo_configs` table)
+- `DATABASE_URL` setting — Postgres store when set, in-memory store for development
 
 ### Changed
-- N/A
+- Repos API now uses dependency-injected storage instead of a module-global dict
 
 ### Deprecated
 - N/A

@@ -1,6 +1,9 @@
-from fastapi import APIRouter, HTTPException, status
+from typing import Annotated
+
+from fastapi import APIRouter, Depends, HTTPException, Request, status
 from pydantic import BaseModel
 
+from everpilot.db import RepoConfigStore
 from everpilot.models.capability import (
     DEFAULT_CAPABILITIES,
     Capability,
@@ -11,8 +14,12 @@ from everpilot.models.repo import RepoConfig
 
 router = APIRouter(prefix="/repos", tags=["repos"])
 
-# In-memory store for boilerplate; replace with DB in production
-_repo_configs: dict[str, RepoConfig] = {}
+
+def get_repo_store(request: Request) -> RepoConfigStore:
+    return request.app.state.repo_store
+
+
+StoreDep = Annotated[RepoConfigStore, Depends(get_repo_store)]
 
 
 class UpdateCapabilityRequest(BaseModel):
@@ -32,32 +39,32 @@ class RepoConfigResponse(BaseModel):
 
 
 @router.get("", response_model=list[str])
-async def list_installed_repos() -> list[str]:
+async def list_installed_repos(store: StoreDep) -> list[str]:
     """Return all repos where Everpilot is installed."""
-    return list(_repo_configs.keys())
+    return await store.list_repo_names()
 
 
 @router.post("", response_model=RepoConfigResponse, status_code=status.HTTP_201_CREATED)
-async def install_repo(body: InstallRepoRequest) -> RepoConfigResponse:
+async def install_repo(body: InstallRepoRequest, store: StoreDep) -> RepoConfigResponse:
     """Install Everpilot on a repository (all capabilities start as OFF)."""
-    if body.repo_full_name in _repo_configs:
-        raise HTTPException(
-            status_code=status.HTTP_409_CONFLICT,
-            detail=f"Everpilot already installed on {body.repo_full_name}",
-        )
     config = RepoConfig(
         repo_full_name=body.repo_full_name,
         capabilities=list(DEFAULT_CAPABILITIES),
     )
-    _repo_configs[body.repo_full_name] = config
+    created = await store.create(config)
+    if not created:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail=f"Everpilot already installed on {body.repo_full_name}",
+        )
     return RepoConfigResponse(**config.model_dump())
 
 
 @router.get("/{owner}/{repo}", response_model=RepoConfigResponse)
-async def get_repo_config(owner: str, repo: str) -> RepoConfigResponse:
+async def get_repo_config(owner: str, repo: str, store: StoreDep) -> RepoConfigResponse:
     """Retrieve the Everpilot configuration for a specific repo."""
     full_name = f"{owner}/{repo}"
-    config = _repo_configs.get(full_name)
+    config = await store.get(full_name)
     if config is None:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -68,38 +75,29 @@ async def get_repo_config(owner: str, repo: str) -> RepoConfigResponse:
 
 @router.patch("/{owner}/{repo}/capabilities", response_model=RepoConfigResponse)
 async def update_capability(
-    owner: str, repo: str, body: UpdateCapabilityRequest
+    owner: str, repo: str, body: UpdateCapabilityRequest, store: StoreDep
 ) -> RepoConfigResponse:
     """Toggle or reconfigure a single capability for a repo."""
     full_name = f"{owner}/{repo}"
-    config = _repo_configs.get(full_name)
+    config = await store.set_capability(
+        full_name,
+        CapabilityConfig(capability=body.capability, mode=body.mode, enabled=body.enabled),
+    )
     if config is None:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail=f"Everpilot not installed on {full_name}",
         )
-
-    updated = []
-    for cap_cfg in config.capabilities:
-        if cap_cfg.capability == body.capability:
-            updated.append(
-                CapabilityConfig(capability=body.capability, mode=body.mode, enabled=body.enabled)
-            )
-        else:
-            updated.append(cap_cfg)
-
-    config.capabilities = updated
-    _repo_configs[full_name] = config
     return RepoConfigResponse(**config.model_dump())
 
 
 @router.delete("/{owner}/{repo}", status_code=status.HTTP_204_NO_CONTENT)
-async def uninstall_repo(owner: str, repo: str) -> None:
+async def uninstall_repo(owner: str, repo: str, store: StoreDep) -> None:
     """Uninstall Everpilot from a repository."""
     full_name = f"{owner}/{repo}"
-    if full_name not in _repo_configs:
+    deleted = await store.delete(full_name)
+    if not deleted:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail=f"Everpilot not installed on {full_name}",
         )
-    del _repo_configs[full_name]
