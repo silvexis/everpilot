@@ -31,6 +31,12 @@ def test_lifespan_uses_postgres_store_when_database_url_set(monkeypatch) -> None
     monkeypatch.setenv("DATABASE_URL", "postgresql://everpilot:x@localhost:5432/everpilot")
     fake_pool = FakePool()
     monkeypatch.setattr(main_module, "create_pool", lambda url: fake_pool)
+    # Keep DBOS out of unit tests: it would connect to the (fake) database URL.
+    from everpilot.orchestration import dbos_engine
+
+    monkeypatch.setattr(
+        dbos_engine, "init_dbos", lambda app, name, url: dbos_engine.DBOSEventDispatcher()
+    )
 
     app = main_module.create_app()
     with TestClient(app) as client:

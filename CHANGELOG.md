@@ -17,6 +17,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
   migration 0003)
 - Installation lifecycle: `installation` / `installation_repositories` webhook events
   now create, suspend, and tear down tenant state (orgs, installations, repositories)
+- DBOS Transact orchestration: webhook events dispatch to durable Postgres-checkpointed
+  workflows via an `EventDispatcher` protocol (inline execution in development)
 
 ### Changed
 - Repos API now uses dependency-injected storage instead of a module-global dict
