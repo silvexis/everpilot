@@ -19,6 +19,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
   now create, suspend, and tear down tenant state (orgs, installations, repositories)
 - DBOS Transact orchestration: webhook events dispatch to durable Postgres-checkpointed
   workflows via an `EventDispatcher` protocol (inline execution in development)
+- M2 task pipeline core: `TaskPipeline` with per-capability mode enforcement (Off
+  suppression, Assisted human review, Autopilot merge gates), optimistic-concurrency
+  state transitions, and a full audit trail (`task.created` / `state_changed` /
+  `merge_blocked` / `suppressed`)
 
 ### Changed
 - Repos API now uses dependency-injected storage instead of a module-global dict
