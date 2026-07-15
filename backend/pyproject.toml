@@ -8,10 +8,10 @@ authors = [
 requires-python = ">=3.13"
 dependencies = [
     "fastapi>=0.139.0",
+    "githubkit[auth-app]>=0.16.0,<0.17.0",
     "httpx>=0.28.1",
     "pydantic>=2.13.4",
     "pydantic-settings>=2.14.2",
-    "pygithub>=2.9.1",
     "python-dotenv>=1.2.2",
     "uvicorn[standard]>=0.49.0",
 ]
