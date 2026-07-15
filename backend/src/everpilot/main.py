@@ -9,6 +9,7 @@ from everpilot import __description__, __version__
 from everpilot.api import api_router
 from everpilot.config import get_settings
 from everpilot.db import InMemoryRepoConfigStore, PostgresRepoConfigStore, create_pool
+from everpilot.db.deliveries import InMemoryWebhookDeliveryStore, PostgresWebhookDeliveryStore
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s — %(message)s")
 logger = logging.getLogger(__name__)
@@ -25,6 +26,7 @@ def create_app() -> FastAPI:
             pool = create_pool(settings.database_url)
             await pool.open(wait=True)
             app.state.repo_store = PostgresRepoConfigStore(pool)
+            app.state.webhook_deliveries = PostgresWebhookDeliveryStore(pool)
             logger.info("Connected to Postgres")
         else:
             logger.warning("DATABASE_URL not set — using in-memory store (development only)")
@@ -42,8 +44,9 @@ def create_app() -> FastAPI:
         lifespan=lifespan,
     )
 
-    # Default store; the lifespan swaps in Postgres when DATABASE_URL is set
+    # Default stores; the lifespan swaps in Postgres when DATABASE_URL is set
     app.state.repo_store = InMemoryRepoConfigStore()
+    app.state.webhook_deliveries = InMemoryWebhookDeliveryStore()
 
     app.add_middleware(
         CORSMiddleware,
