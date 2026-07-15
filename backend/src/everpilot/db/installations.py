@@ -28,6 +28,10 @@ class InstallationStore(Protocol):
 
     async def remove_repositories(self, github_repo_ids: list[int]) -> None: ...
 
+    async def repo_context(self, repository_id: int) -> tuple[str, int] | None:
+        """(repo_full_name, github_installation_id) for a repository db id."""
+        ...
+
 
 class InMemoryInstallationStore:
     """Dev/test double."""
@@ -96,6 +100,17 @@ class InMemoryInstallationStore:
     async def remove_repositories(self, github_repo_ids: list[int]) -> None:
         for github_repo_id in github_repo_ids:
             self._repositories.pop(github_repo_id, None)
+
+    async def repo_context(self, repository_id: int) -> tuple[str, int] | None:
+        repo = next((r for r in self._repositories.values() if r.id == repository_id), None)
+        if repo is None:
+            return None
+        installation = next(
+            (i for i in self._installations.values() if i.id == repo.installation_id), None
+        )
+        if installation is None:
+            return None
+        return repo.full_name, installation.github_installation_id
 
 
 class PostgresInstallationStore:
@@ -197,3 +212,14 @@ class PostgresInstallationStore:
                 "DELETE FROM repositories WHERE github_repo_id = ANY(%s)",
                 (github_repo_ids,),
             )
+
+    async def repo_context(self, repository_id: int) -> tuple[str, int] | None:
+        async with self._pool.connection() as conn:
+            cur = await conn.execute(
+                "SELECT r.full_name, i.github_installation_id"
+                " FROM repositories r JOIN installations i ON i.id = r.installation_id"
+                " WHERE r.id = %s",
+                (repository_id,),
+            )
+            row = await cur.fetchone()
+        return (row[0], row[1]) if row is not None else None

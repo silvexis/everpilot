@@ -30,6 +30,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
   `DependencyDetector` producing outdated/vulnerable reports with bump classification
 - Upgrade batch planning: security and major bumps as solo PRs, minor/patch grouped
   per ecosystem
+- Rollback: `POST /api/v1/tasks/{id}/rollback` opens a revert PR (GraphQL
+  `revertPullRequest`) for merged tasks; never auto-merged, fully audited
 
 ### Fixed
 - Audit trail recorded the wrong `from` state on transitions (post-mutation aliasing

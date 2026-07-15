@@ -36,7 +36,8 @@ def create_app() -> FastAPI:
             await pool.open(wait=True)
             app.state.repo_store = PostgresRepoConfigStore(pool)
             app.state.webhook_deliveries = PostgresWebhookDeliveryStore(pool)
-            app.state.installation_service = InstallationService(PostgresInstallationStore(pool))
+            app.state.installation_store = PostgresInstallationStore(pool)
+            app.state.installation_service = InstallationService(app.state.installation_store)
             app.state.task_store = PostgresTaskStore(pool)
             app.state.audit_store = PostgresAuditStore(pool)
             from everpilot.orchestration import dbos_engine
@@ -62,7 +63,16 @@ def create_app() -> FastAPI:
     # Default stores; the lifespan swaps in Postgres when DATABASE_URL is set
     app.state.repo_store = InMemoryRepoConfigStore()
     app.state.webhook_deliveries = InMemoryWebhookDeliveryStore()
-    app.state.installation_service = InstallationService(InMemoryInstallationStore())
+    app.state.installation_store = InMemoryInstallationStore()
+    app.state.installation_service = InstallationService(app.state.installation_store)
+    app.state.rollback_service = None
+    if settings.github_app_id and settings.github_app_private_key:
+        from everpilot.github import GitHubAppClients
+        from everpilot.github.rollback import RollbackService
+
+        app.state.rollback_service = RollbackService(
+            GitHubAppClients(settings.github_app_id, settings.github_app_private_key)
+        )
     app.state.task_store = InMemoryTaskStore()
     app.state.audit_store = InMemoryAuditStore()
     app.state.event_dispatcher = InlineEventDispatcher(app.state.installation_service)
