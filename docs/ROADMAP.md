@@ -40,7 +40,7 @@ Replace the boilerplate internals with production plumbing. Everything else buil
 on this.
 
 - [x] PostgreSQL persistence layer (psycopg3, Alembic migrations); delete the
-      in-memory repo store *(PR #4 — store protocol + Postgres/in-memory impls;
+      in-memory repo store *(PR #4/#15 — store protocol + Postgres/in-memory impls;
       in-memory remains as the test/dev double, Postgres used when DATABASE_URL set)*
 - [x] Core data model: `organizations`, `users`, `installations`, `repositories`,
       `capability_configs`, `tasks`, `runs`, `audit_events` *(PR #5 — migration

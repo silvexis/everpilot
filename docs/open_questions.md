@@ -3,22 +3,13 @@
 Questions and feedback needed from Erik to complete the roadmap goal. Newest
 first. Remove entries once resolved.
 
-## 2026-07-15 — PR merges need human action
+## ~~PR merges need human action~~ — RESOLVED 2026-07-15
 
-The autonomous loop cannot merge its own PRs (Claude Code's permission
-classifier blocks self-merge without review, and working around it would
-defeat the point). **Every completed roadmap item will be left as an open,
-CI-green PR.** To unblock:
-
-- **Option A (keep human in the loop):** review and merge queued PRs as they
-  appear — `gh pr list` shows the queue; each is rebase-merge ready.
-- **Option B (fully autonomous):** add a Bash permission rule allowing
-  `gh pr merge` to project settings (the `/update-config` skill can do this),
-  accepting that agent-authored code lands on main without review. Given
-  Everpilot itself sells the Assisted-vs-Autopilot distinction, running our own
-  repo in "Assisted" seems fitting until trust is established.
-
-Currently queued: PR #3 (Release v0.1.0 — githubkit swap, CI green).
+Erik granted standing authorization: **auto-merge any PR once all GitHub
+checks pass, except when human input is judged necessary** (e.g. destructive
+changes, scope decisions, anything security-sensitive). All 12 queued PRs from
+the autonomous run (#3, #15 replacing #4, #5–#14) were rebase-merged to main
+in stack order; every merge had green CI.
 
 ## 2026-07-15 — Roadmap open questions still owner-less
 
