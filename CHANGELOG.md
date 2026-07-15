@@ -12,9 +12,18 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Core data model (migration 0002): organizations, users, org members, installations,
   repositories, capability configs, tasks, runs, audit events — with matching Pydantic
   domain models and a task state machine (`TaskState`, legal-transition map)
+- GitHub App auth: `GitHubAppClients` factory (githubkit app/installation strategies)
+- Webhook replay protection: delivery-GUID dedup store (in-memory + Postgres,
+  migration 0003)
 
 ### Changed
 - Repos API now uses dependency-injected storage instead of a module-global dict
+- Webhook signature verification now fails closed: missing signature is rejected when
+  a secret is configured; unsigned webhooks are only accepted in development
+
+### Security
+- Fixed webhook verification bypass: deliveries without a signature header were
+  previously accepted even with `GITHUB_WEBHOOK_SECRET` configured
 
 ### Deprecated
 - N/A
@@ -23,9 +32,6 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - N/A
 
 ### Fixed
-- N/A
-
-### Security
 - N/A
 
 ## [0.1.0] - 2026-07-15
