@@ -99,7 +99,8 @@ The state machine every capability rides on.
 - [ ] Rollback: one-click revert PR for any Everpilot-merged change
 - [ ] Full audit trail: every trigger, decision, PR, merge, and failure queryable
       per repo and per org
-- [ ] Run logs and diffs viewable in the dashboard
+- [ ] Run logs and diffs viewable in the dashboard *(PR #10 — read API:
+      GET /tasks, /tasks/{id}, /tasks/{id}/audit; frontend page still to come)*
 
 ## M3 — V1 capabilities
 
