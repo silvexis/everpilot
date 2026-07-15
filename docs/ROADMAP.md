@@ -29,7 +29,7 @@ action in an audit trail, and get billed for the work performed.
 | Version parsing | `packaging` (PEP 440) + `semantic-version` (npm ranges) |
 | Transactional email | Resend |
 | Observability | Native CloudWatch (logs, metrics, alarms, X-Ray) |
-| Job orchestration | **Open** — DBOS Transact vs. Hatchet; decide alongside the M1 engine spike |
+| Job orchestration | DBOS Transact (in-process, Postgres-backed); revisit native AWS orchestration (Step Functions) if scale demands it |
 
 ---
 
@@ -47,10 +47,10 @@ on this.
 - [ ] GitHub App auth: installation-token minting, caching, and refresh
 - [ ] Webhook ingestion hardened: HMAC verification (exists), plus idempotency
       keys, replay protection, and dead-letter handling
-- [ ] Background job orchestration (webhook events → durable workflows → workers);
-      no work executes inside the request path. Engine choice (DBOS Transact vs.
-      Hatchet) decided alongside the M1 spike — both are Postgres-backed and $0
-      at V1 scale
+- [ ] Background job orchestration via DBOS Transact (webhook events → durable
+      Python workflows checkpointed in Postgres); no work executes inside the
+      request path. Keep workflow logic cleanly separated so a future migration
+      to native AWS orchestration at scale stays tractable
 - [ ] Backend deployment target on AWS (API + workers), IaC from day one
 
 ## M1 — Agent engine spike ⚠ decision gate
@@ -160,13 +160,10 @@ Explicitly out of scope for V1, in rough priority order:
 
 Tracked here until each has an owner and a decision:
 
-1. Job orchestration engine: DBOS Transact (in-process, Postgres-only, lowest ops)
-   vs. Hatchet (separate orchestrator with dashboard, best per-repo concurrency
-   keys). Decide alongside the M1 agent-engine spike.
-2. LLM cost control: hard per-task token budget vs. adaptive? How is overrun
+1. LLM cost control: hard per-task token budget vs. adaptive? How is overrun
    surfaced to the customer?
-3. Autopilot trust ladder: should repos have to earn Autopilot (N successful
+2. Autopilot trust ladder: should repos have to earn Autopilot (N successful
    assisted merges first), or is opt-in enough?
-4. Issue Triage on public repos: how to handle prompt-injection attempts from
+3. Issue Triage on public repos: how to handle prompt-injection attempts from
    issue bodies?
-5. Free tier shape: task count, repo count, or trial period?
+4. Free tier shape: task count, repo count, or trial period?
