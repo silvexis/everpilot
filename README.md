@@ -112,6 +112,7 @@ All backend configuration is driven by environment variables (or a `backend/.env
 | `GITHUB_CLIENT_ID` | Yes | OAuth client ID for user authorization |
 | `GITHUB_CLIENT_SECRET` | Yes | OAuth client secret |
 | `SECRET_KEY` | Yes | Random secret used for JWT signing — change in production |
+| `DATABASE_URL` | Prod | Postgres URL (`postgresql://user:pass@host:5432/everpilot`); unset = in-memory store (development only) |
 | `APP_ENV` | No | `development` \| `production` (default: `development`) |
 | `DEBUG` | No | `true` enables `/docs` and verbose logging (default: `false`) |
 | `API_HOST` | No | Bind host (default: `0.0.0.0`) |
@@ -144,6 +145,11 @@ uv run ruff check .
 
 # Format
 uv run ruff format .
+
+# Database migrations (requires DATABASE_URL)
+uv run alembic upgrade head       # apply
+uv run alembic downgrade -1      # roll back one
+uv run alembic revision -m "..."  # new migration
 
 # Lint + format in one pass
 uv run ruff check . --fix && uv run ruff format .

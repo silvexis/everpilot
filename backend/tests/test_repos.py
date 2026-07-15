@@ -1,18 +1,9 @@
-import pytest
 from fastapi.testclient import TestClient
 
 REPO = "silvexis/test-repo"
 OWNER, REPO_NAME = REPO.split("/")
 
-
-@pytest.fixture(autouse=True)
-def reset_repo_store():
-    """Clear the in-memory store between tests."""
-    from everpilot.api import repos as repos_module
-
-    repos_module._repo_configs.clear()
-    yield
-    repos_module._repo_configs.clear()
+# Each test gets a fresh app (see conftest), and with it a fresh in-memory store.
 
 
 def test_list_repos_empty(client: TestClient) -> None:
