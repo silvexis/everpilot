@@ -42,8 +42,9 @@ on this.
 - [x] PostgreSQL persistence layer (psycopg3, Alembic migrations); delete the
       in-memory repo store *(PR #4 — store protocol + Postgres/in-memory impls;
       in-memory remains as the test/dev double, Postgres used when DATABASE_URL set)*
-- [ ] Core data model: `organizations`, `users`, `installations`, `repositories`,
-      `capability_configs`, `tasks`, `runs`, `audit_events`
+- [x] Core data model: `organizations`, `users`, `installations`, `repositories`,
+      `capability_configs`, `tasks`, `runs`, `audit_events` *(PR #5 — migration
+      0002 + domain models incl. task state machine with legal transitions)*
 - [ ] GitHub App installation lifecycle: install/uninstall webhooks create and
       tear down tenant state
 - [ ] GitHub App auth: installation-token minting, caching, and refresh

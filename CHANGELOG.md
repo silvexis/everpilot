@@ -9,6 +9,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - PostgreSQL persistence layer: `RepoConfigStore` protocol with psycopg3 (async pool)
   and in-memory implementations; Alembic migrations (`repo_configs` table)
 - `DATABASE_URL` setting — Postgres store when set, in-memory store for development
+- Core data model (migration 0002): organizations, users, org members, installations,
+  repositories, capability configs, tasks, runs, audit events — with matching Pydantic
+  domain models and a task state machine (`TaskState`, legal-transition map)
 
 ### Changed
 - Repos API now uses dependency-injected storage instead of a module-global dict
