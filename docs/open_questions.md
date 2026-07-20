@@ -3,6 +3,31 @@
 Questions and feedback needed from Erik to complete the roadmap goal. Newest
 first. Remove entries once resolved.
 
+## 2026-07-19 — Roadmap status: everything unblocked is shipped
+
+Every roadmap item is now either **complete** or **blocked on an entry below**.
+Nothing else is buildable without your input:
+
+| Item | Status | Blocker |
+|---|---|---|
+| M0 platform foundations | ✅ shipped | — |
+| M1 agent-engine spike | ⛔ blocked | Anthropic API key + engine choice (below) |
+| M2 task pipeline + audit | ✅ shipped | — |
+| M3 Dependencies — detection/batching | ✅ shipped | — |
+| M3 Dependencies — upgrade-PR generation | ⛔ blocked | needs M1 (an agent writes the change) |
+| M3 Issue Triage | ⛔ blocked | needs M1 (LLM classifies/fixes) |
+| M4 SaaS layer (auth, metering, billing, email) | ⛔ blocked | WorkOS/Stripe/Resend accounts + auth design (below) |
+| M5 public docs | ✅ shipped | — |
+| M5 security review | ✅ effectively covered | pre-auth surface tracked below; full audit wants a deployed env |
+| M5 observability | ◐ partial | log group + 5xx alarm shipped in M0; tracing/dashboards need the deployed stack |
+| M5 load testing | ⛔ blocked | needs a deployed environment (AWS account decision below) |
+| M5 marketing site + pricing page, ToS/privacy | ⛔ blocked | product/design/legal decisions + final pricing |
+| M5 status page + incident process | ⛔ blocked | needs a deploy + a status-page provider choice |
+
+The specific decisions/credentials that unblock these are the dated entries
+below (Anthropic key, M4 provisioning, AWS account/domains/NAT, prompt-injection
+design, capability-config data model).
+
 ## ~~PR merges need human action~~ — RESOLVED 2026-07-15
 
 Erik granted standing authorization: **auto-merge any PR once all GitHub
