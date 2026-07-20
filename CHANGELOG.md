@@ -38,6 +38,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
   event-type filters and keyset pagination; `AuditRecorder` resolves and stamps
   `organization_id` on every appended event; audit-feed indexes (migration 0004);
   `AuditStore.append` now returns the persisted event with id/created_at
+- Dependency scan triggers (M3): lockfile-touching default-branch pushes and a
+  daily DBOS scheduled sweep run detection and create one pipeline task per
+  upgrade batch — capability-gated before any network I/O, deduped against open
+  tasks, truncation-safe push parsing, honest 404-vs-outage error handling
+- Webhook deliveries are un-recorded when dispatch fails, so GitHub redeliveries
+  are processed instead of dropped as duplicates
 
 ### Fixed
 - Audit trail recorded the wrong `from` state on transitions (post-mutation aliasing

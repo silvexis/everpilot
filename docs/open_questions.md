@@ -42,6 +42,23 @@ work should read the repo's `infra-account-architecture`,
 `govern-tagging-policy`, `infra-ssm-parameters`, and `infra-vpc-networking`
 standards before writing templates.
 
+## 2026-07-19 — Capability-config data model split (design decision needed)
+
+Capability modes live in the legacy `repo_configs` store keyed by
+`repo_full_name`, while tenant state (orgs/installations/repositories) is keyed
+by GitHub ids — and the `capability_configs` table from migration 0002 has no
+readers or writers. Concrete hazard: a repo rename keeps `github_repo_id`
+stable but breaks the `full_name` config lookup, silently flipping capabilities
+to OFF. Proposal: migrate capability config onto `capability_configs`
+(keyed by `repository_id`), update the repos API, and delete the legacy store.
+Medium refactor; wants a decision before M4 builds onboarding on top.
+
+## 2026-07-19 — Dependency scanning V1 limits
+
+Root-directory lockfiles only (trigger and fetch deliberately agree on this),
+and files >1MB are skipped with a warning (GitHub contents-API limit — needs
+the git blobs API). Both are post-V1 unless design partners hit them early.
+
 ## 2026-07-19 — SECURITY: entire API is pre-auth; M4 must add tenancy enforcement
 
 Every endpoint (repos, tasks, rollback, and now the cross-org /api/v1/audit

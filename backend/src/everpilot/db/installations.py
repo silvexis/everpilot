@@ -36,6 +36,14 @@ class InstallationStore(Protocol):
         """Owning organization's db id, resolved repository → installation → org."""
         ...
 
+    async def get_scannable_repository(self, github_repo_id: int) -> tuple[Repository, int] | None:
+        """(Repository, github_installation_id), or None if unknown or suspended."""
+        ...
+
+    async def list_scannable_repositories(self) -> list[tuple[Repository, int]]:
+        """All repositories with their github_installation_id (non-suspended installs)."""
+        ...
+
 
 class InMemoryInstallationStore:
     """Dev/test double."""
@@ -124,6 +132,27 @@ class InMemoryInstallationStore:
             (i for i in self._installations.values() if i.id == repo.installation_id), None
         )
         return installation.organization_id if installation is not None else None
+
+    async def get_scannable_repository(self, github_repo_id: int) -> tuple[Repository, int] | None:
+        repo = self._repositories.get(github_repo_id)
+        if repo is None:
+            return None
+        installation = next(
+            (i for i in self._installations.values() if i.id == repo.installation_id), None
+        )
+        if installation is None or installation.is_suspended:
+            return None
+        return repo, installation.github_installation_id
+
+    async def list_scannable_repositories(self) -> list[tuple[Repository, int]]:
+        results = []
+        for repo in self._repositories.values():
+            installation = next(
+                (i for i in self._installations.values() if i.id == repo.installation_id), None
+            )
+            if installation is not None and not installation.is_suspended:
+                results.append((repo, installation.github_installation_id))
+        return results
 
 
 class PostgresInstallationStore:
@@ -247,3 +276,38 @@ class PostgresInstallationStore:
             )
             row = await cur.fetchone()
         return row[0] if row is not None else None
+
+    async def get_scannable_repository(self, github_repo_id: int) -> tuple[Repository, int] | None:
+        async with self._pool.connection() as conn:
+            cur = await conn.execute(
+                "SELECT r.id, r.github_repo_id, r.installation_id, r.full_name,"
+                " r.default_branch, r.private, r.created_at, i.github_installation_id"
+                " FROM repositories r JOIN installations i ON i.id = r.installation_id"
+                " WHERE r.github_repo_id = %s AND i.suspended_at IS NULL",
+                (github_repo_id,),
+            )
+            row = await cur.fetchone()
+        return (_row_to_repository(row[:7]), row[7]) if row is not None else None
+
+    async def list_scannable_repositories(self) -> list[tuple[Repository, int]]:
+        async with self._pool.connection() as conn:
+            cur = await conn.execute(
+                "SELECT r.id, r.github_repo_id, r.installation_id, r.full_name,"
+                " r.default_branch, r.private, r.created_at, i.github_installation_id"
+                " FROM repositories r JOIN installations i ON i.id = r.installation_id"
+                " WHERE i.suspended_at IS NULL ORDER BY r.id"
+            )
+            rows = await cur.fetchall()
+        return [(_row_to_repository(row[:7]), row[7]) for row in rows]
+
+
+def _row_to_repository(row: tuple) -> Repository:
+    return Repository(
+        id=row[0],
+        github_repo_id=row[1],
+        installation_id=row[2],
+        full_name=row[3],
+        default_branch=row[4],
+        private=row[5],
+        created_at=row[6],
+    )

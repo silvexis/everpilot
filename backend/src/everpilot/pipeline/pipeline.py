@@ -139,3 +139,8 @@ class TaskPipeline:
         """Assisted resolution: a human approved (merged) or rejected the PR."""
         new_state = TaskState.MERGED if approved else TaskState.REJECTED
         return await self.advance(task_id, new_state, actor=actor)
+
+    async def list_open_tasks(self, repository_id: int) -> list[Task]:
+        """Non-terminal tasks for a repository — the dedup set for re-triggered scans."""
+        tasks = await self._tasks.list(repository_id=repository_id, limit=200)
+        return [t for t in tasks if not t.is_terminal]
