@@ -1,4 +1,33 @@
-"""Shared fakes: psycopg pool/connection stand-ins so unit tests never touch a DB."""
+"""Shared fakes: psycopg pool/connection stand-ins so unit tests never touch a DB,
+plus the standard tenant fixture (org 777 / installation 5555 / repo 101)."""
+
+from everpilot.models.core import Installation, Organization, Repository
+
+STANDARD_ORG_GITHUB_ID = 777
+STANDARD_INSTALLATION_GITHUB_ID = 5555
+STANDARD_REPO_GITHUB_ID = 101
+STANDARD_REPO_FULL_NAME = "silvexis/alpha"
+
+
+async def seed_tenant(installations) -> Repository:
+    """Create the standard org→installation→repo tenant in an installation store."""
+    org_id = await installations.upsert_organization(
+        Organization(github_org_id=STANDARD_ORG_GITHUB_ID, login="silvexis")
+    )
+    installation_db_id = await installations.create_installation(
+        Installation(github_installation_id=STANDARD_INSTALLATION_GITHUB_ID, organization_id=org_id)
+    )
+    await installations.add_repositories(
+        installation_db_id,
+        [
+            Repository(
+                github_repo_id=STANDARD_REPO_GITHUB_ID,
+                installation_id=0,
+                full_name=STANDARD_REPO_FULL_NAME,
+            )
+        ],
+    )
+    return next(iter(installations._repositories.values()))
 
 
 class FakeCursor:

@@ -11,6 +11,10 @@ class WebhookDeliveryStore(Protocol):
         """Record a delivery. Returns True if new, False if already seen (replay)."""
         ...
 
+    async def forget(self, delivery_id: str) -> None:
+        """Remove a recorded delivery so a redelivery is processed (dispatch failed)."""
+        ...
+
 
 class InMemoryWebhookDeliveryStore:
     """Bounded LRU set for development and tests."""
@@ -28,6 +32,9 @@ class InMemoryWebhookDeliveryStore:
             self._seen.popitem(last=False)
         return True
 
+    async def forget(self, delivery_id: str) -> None:
+        self._seen.pop(delivery_id, None)
+
 
 class PostgresWebhookDeliveryStore:
     """Durable delivery log; survives restarts and multiple API replicas."""
@@ -44,3 +51,9 @@ class PostgresWebhookDeliveryStore:
             )
             row = await cur.fetchone()
         return row is not None
+
+    async def forget(self, delivery_id: str) -> None:
+        async with self._pool.connection() as conn:
+            await conn.execute(
+                "DELETE FROM webhook_deliveries WHERE delivery_id = %s", (delivery_id,)
+            )

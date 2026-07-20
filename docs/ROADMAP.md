@@ -121,10 +121,12 @@ Both capabilities are thin layers over the M2 pipeline.
 
 - [ ] Ecosystem support at launch: Python (uv/pyproject) and JavaScript
       (npm/pnpm) — others post-V1
-- [ ] Detect outdated/vulnerable dependencies on schedule and on lockfile-touching
+- [x] Detect outdated/vulnerable dependencies on schedule and on lockfile-touching
       pushes (OSV.dev for advisories; PyPI JSON API / npm registry for versions)
-      *(PR #11 — detection engine done: lockfile parsers, OSV batch client,
-      registry lookups, `DependencyDetector`; schedule/push triggers still to wire)*
+      *(PR #11 — detection engine; PR #19 — triggers: lockfile-touching default-branch
+      pushes + daily DBOS scheduled sweep, config-gated before any I/O, open-task
+      dedup, truncation-safe push detection. Root lockfiles only — monorepo/nested
+      and >1MB lockfiles tracked in open_questions)*
 - [ ] Upgrade PRs with changelog/breaking-change summaries, verified by the repo's
       own CI
 - [x] Batch strategy: group compatible minor/patch bumps; majors always solo PRs

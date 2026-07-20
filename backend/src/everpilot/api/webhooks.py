@@ -73,6 +73,13 @@ async def github_webhook(
         return WebhookResponse(accepted=False, event=x_github_event, duplicate=True)
 
     payload = await request.json()
-    await dispatcher.dispatch(x_github_event, payload)
+    try:
+        await dispatcher.dispatch(x_github_event, payload)
+    except Exception:
+        # Un-record the delivery so GitHub's redelivery is processed, not
+        # swallowed as a duplicate of an event we never actually handled.
+        if x_github_delivery:
+            await deliveries.forget(x_github_delivery)
+        raise
 
     return WebhookResponse(accepted=True, event=x_github_event)

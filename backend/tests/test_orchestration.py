@@ -47,8 +47,37 @@ async def test_dbos_dispatcher_enqueues_durable_workflow(monkeypatch) -> None:
     assert args == ("push", {"ref": "refs/heads/main"})
 
 
-def test_bind_installation_service() -> None:
+async def test_run_github_event_raises_until_services_bound(monkeypatch) -> None:
+    """Recovery replaying a workflow before startup binding must retry, not no-op."""
+    import pytest
+
+    monkeypatch.setattr(dbos_engine, "_services_bound", False)
+    with pytest.raises(RuntimeError, match="not bound"):
+        await dbos_engine.run_github_event("push", {})
+
+
+async def test_run_scheduled_scan_skips_when_dependencies_off(monkeypatch) -> None:
+    monkeypatch.setattr(dbos_engine, "_services_bound", True)
+    monkeypatch.setattr(dbos_engine, "_dependencies", None)
+    assert await dbos_engine.run_scheduled_scan() == 0
+
+
+async def test_run_scheduled_scan_delegates_to_service(monkeypatch) -> None:
+    class StubScanService:
+        async def scan_all(self) -> int:
+            return 7
+
+    monkeypatch.setattr(dbos_engine, "_services_bound", True)
+    monkeypatch.setattr(dbos_engine, "_dependencies", StubScanService())
+    assert await dbos_engine.run_scheduled_scan() == 7
+
+
+async def test_bind_services(monkeypatch) -> None:
+    monkeypatch.setattr(dbos_engine, "_services_bound", False)
     service = InstallationService(InMemoryInstallationStore())
-    dbos_engine.bind_installation_service(service)
+    dbos_engine.bind_services(service, None)
     assert dbos_engine._installations is service
-    dbos_engine.bind_installation_service(None)  # type: ignore[arg-type]
+    assert dbos_engine._dependencies is None
+    assert dbos_engine._services_bound is True
+    monkeypatch.setattr(dbos_engine, "_installations", None)
+    monkeypatch.setattr(dbos_engine, "_services_bound", False)

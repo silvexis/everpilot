@@ -7,6 +7,7 @@ orchestration layers wrap these instead of absorbing them.
 
 import logging
 
+from everpilot.capabilities.dependencies.service import DependencyScanService
 from everpilot.github.installations import InstallationService
 
 logger = logging.getLogger(__name__)
@@ -16,13 +17,20 @@ async def handle_github_event(
     event: str,
     payload: dict,  # type: ignore[type-arg]
     installations: InstallationService,
+    dependencies: DependencyScanService | None = None,
 ) -> None:
     """Dispatch a verified, deduplicated GitHub webhook event."""
     logger.info("Processing GitHub event: %s", event)
 
     match event:
         case "push":
-            logger.debug("Push event on %s", payload.get("repository", {}).get("full_name"))
+            if dependencies is not None:
+                await dependencies.handle_push(payload)
+            else:
+                logger.debug(
+                    "Push on %s ignored (dependency scanning not configured)",
+                    payload.get("repository", {}).get("full_name"),
+                )
         case "issues":
             action = payload.get("action")
             logger.debug("Issue %s on %s", action, payload.get("repository", {}).get("full_name"))
