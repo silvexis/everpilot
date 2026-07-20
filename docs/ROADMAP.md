@@ -170,7 +170,8 @@ Both capabilities are thin layers over the M2 pipeline.
       alarms on task-failure rate and queue depth; log-retention policies set from
       day one to control cost
 - [ ] Load testing on webhook bursts (org-wide installs, dependency-bot storms)
-- [ ] Public docs: setup guide, capability reference, mode semantics, billing FAQ
+- [x] Public docs: setup guide, capability reference, mode semantics, billing FAQ
+      *(PR #21 — docs/guide/: getting-started, capabilities, operating-modes, billing)*
 - [ ] Marketing site + pricing page; ToS and privacy policy
 - [ ] Status page and incident process
 

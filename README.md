@@ -4,6 +4,8 @@
 
 Everpilot is an autonomous code-maintenance system for GitHub. You delegate the ongoing care of a codebase to it and choose — per capability, per repository — whether it works fully autonomously or hands every change to a human for review.
 
+**Using Everpilot?** See the [user guide](docs/guide/README.md): getting started, capabilities, operating modes, and billing. This README covers running the code.
+
 ## Capabilities
 
 | | Capability | What it does |
