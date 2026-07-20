@@ -32,6 +32,10 @@ class InstallationStore(Protocol):
         """(repo_full_name, github_installation_id) for a repository db id."""
         ...
 
+    async def organization_id_for_repository(self, repository_id: int) -> int | None:
+        """Owning organization's db id, resolved repository → installation → org."""
+        ...
+
 
 class InMemoryInstallationStore:
     """Dev/test double."""
@@ -111,6 +115,15 @@ class InMemoryInstallationStore:
         if installation is None:
             return None
         return repo.full_name, installation.github_installation_id
+
+    async def organization_id_for_repository(self, repository_id: int) -> int | None:
+        repo = next((r for r in self._repositories.values() if r.id == repository_id), None)
+        if repo is None:
+            return None
+        installation = next(
+            (i for i in self._installations.values() if i.id == repo.installation_id), None
+        )
+        return installation.organization_id if installation is not None else None
 
 
 class PostgresInstallationStore:
@@ -223,3 +236,14 @@ class PostgresInstallationStore:
             )
             row = await cur.fetchone()
         return (row[0], row[1]) if row is not None else None
+
+    async def organization_id_for_repository(self, repository_id: int) -> int | None:
+        async with self._pool.connection() as conn:
+            cur = await conn.execute(
+                "SELECT i.organization_id"
+                " FROM repositories r JOIN installations i ON i.id = r.installation_id"
+                " WHERE r.id = %s",
+                (repository_id,),
+            )
+            row = await cur.fetchone()
+        return row[0] if row is not None else None

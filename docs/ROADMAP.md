@@ -103,8 +103,11 @@ The state machine every capability rides on.
 - [x] Rollback: one-click revert PR for any Everpilot-merged change *(PR #13 —
       `POST /tasks/{id}/rollback` via GraphQL revertPullRequest; revert PRs are
       never auto-merged; `task.rolled_back` audit event)*
-- [ ] Full audit trail: every trigger, decision, PR, merge, and failure queryable
-      per repo and per org
+- [x] Full audit trail: every trigger, decision, PR, merge, and failure queryable
+      per repo and per org *(PR #18 — GET /api/v1/audit with repo/org/task/type
+      filters + keyset pagination; `AuditRecorder` stamps organization_id at the
+      append path so org feeds are complete; feed-serving indexes in migration 0004.
+      ⚠ endpoint is pre-auth: M4 must add org-membership enforcement)*
 - [x] Run logs and diffs viewable in the dashboard *(PR #10 — read API;
       PR #14 — Tasks list + detail pages with audit timeline and rollback button.
       Diff view links to the GitHub PR; full run-log streaming depends on the

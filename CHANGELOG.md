@@ -34,6 +34,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
   `revertPullRequest`) for merged tasks; never auto-merged, fully audited
 - Dashboard Tasks UI: task list with state filters, task detail with audit
   timeline and a rollback button for merged tasks
+- Org/repo-wide audit feed: `GET /api/v1/audit` with repository/organization/task/
+  event-type filters and keyset pagination; `AuditRecorder` resolves and stamps
+  `organization_id` on every appended event; audit-feed indexes (migration 0004);
+  `AuditStore.append` now returns the persisted event with id/created_at
 
 ### Fixed
 - Audit trail recorded the wrong `from` state on transitions (post-mutation aliasing

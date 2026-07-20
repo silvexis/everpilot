@@ -1,25 +1,13 @@
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
+from fastapi import APIRouter, HTTPException, Query, Request, status
 from pydantic import BaseModel
 
-from everpilot.db.tasks import AuditStore, TaskStore
+from everpilot.api.deps import AuditStoreDep, TaskStoreDep
 from everpilot.github.rollback import RollbackError
 from everpilot.models.core import AuditEvent, Task, TaskState
 
 router = APIRouter(prefix="/tasks", tags=["tasks"])
-
-
-def get_task_store(request: Request) -> TaskStore:
-    return request.app.state.task_store
-
-
-def get_audit_store(request: Request) -> AuditStore:
-    return request.app.state.audit_store
-
-
-TaskStoreDep = Annotated[TaskStore, Depends(get_task_store)]
-AuditStoreDep = Annotated[AuditStore, Depends(get_audit_store)]
 
 
 @router.get("", response_model=list[Task])
