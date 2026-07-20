@@ -42,6 +42,15 @@ work should read the repo's `infra-account-architecture`,
 `govern-tagging-policy`, `infra-ssm-parameters`, and `infra-vpc-networking`
 standards before writing templates.
 
+## 2026-07-19 — SECURITY: entire API is pre-auth; M4 must add tenancy enforcement
+
+Every endpoint (repos, tasks, rollback, and now the cross-org /api/v1/audit
+feed) has no authn/authz — acceptable only while nothing is deployed publicly.
+The M4 WorkOS integration must ship API-wide auth middleware with org-membership
+scoping (a caller may only pass organization_id / repository_id values they are
+a member of) **before any public deployment**. Flagged during the audit-feed
+code review: /api/v1/audit is the first deliberately cross-tenant surface.
+
 ## 2026-07-15 — Third-party account provisioning (M4)
 
 M4 needs accounts + API keys only you can create: WorkOS (AuthKit), Stripe

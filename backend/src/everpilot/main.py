@@ -9,6 +9,7 @@ from everpilot import __description__, __version__
 from everpilot.api import api_router
 from everpilot.config import get_settings
 from everpilot.db import InMemoryRepoConfigStore, PostgresRepoConfigStore, create_pool
+from everpilot.db.audit_recorder import AuditRecorder
 from everpilot.db.deliveries import InMemoryWebhookDeliveryStore, PostgresWebhookDeliveryStore
 from everpilot.db.installations import InMemoryInstallationStore, PostgresInstallationStore
 from everpilot.db.tasks import (
@@ -39,7 +40,9 @@ def create_app() -> FastAPI:
             app.state.installation_store = PostgresInstallationStore(pool)
             app.state.installation_service = InstallationService(app.state.installation_store)
             app.state.task_store = PostgresTaskStore(pool)
-            app.state.audit_store = PostgresAuditStore(pool)
+            app.state.audit_store = AuditRecorder(
+                PostgresAuditStore(pool), app.state.installation_store
+            )
             from everpilot.orchestration import dbos_engine
 
             dbos_engine.bind_installation_service(app.state.installation_service)
@@ -74,7 +77,7 @@ def create_app() -> FastAPI:
             GitHubAppClients(settings.github_app_id, settings.github_app_private_key)
         )
     app.state.task_store = InMemoryTaskStore()
-    app.state.audit_store = InMemoryAuditStore()
+    app.state.audit_store = AuditRecorder(InMemoryAuditStore(), app.state.installation_store)
     app.state.event_dispatcher = InlineEventDispatcher(app.state.installation_service)
 
     if settings.database_url:
