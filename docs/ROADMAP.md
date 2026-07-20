@@ -31,6 +31,10 @@ action in an audit trail, and get billed for the work performed.
 | Transactional email | Resend |
 | Observability | Native CloudWatch (logs, metrics, alarms, X-Ray) |
 | Job orchestration | DBOS Transact (in-process, Postgres-backed); revisit native AWS orchestration (Step Functions) if scale demands it |
+| IaC | CloudFormation, following [CloudZero/cz-standards](https://github.com/Cloudzero/cz-standards) conventions (account architecture, tagging policy, SSM parameters, VPC networking) |
+| Autopilot access | Earned: a repo needs N successful Assisted merges (default 5) before Autopilot can be enabled |
+| LLM cost control | Hard per-task token cap by capability type; one automatic retry at a higher cap on overrun, then visible task failure |
+| Free tier | N completed tasks/month free (default 10), then usage-priced — aligns 1:1 with the Stripe billing meter |
 
 ---
 
@@ -180,10 +184,6 @@ Explicitly out of scope for V1, in rough priority order:
 
 Tracked here until each has an owner and a decision:
 
-1. LLM cost control: hard per-task token budget vs. adaptive? How is overrun
-   surfaced to the customer?
-2. Autopilot trust ladder: should repos have to earn Autopilot (N successful
-   assisted merges first), or is opt-in enough?
-3. Issue Triage on public repos: how to handle prompt-injection attempts from
-   issue bodies?
-4. Free tier shape: task count, repo count, or trial period?
+1. Issue Triage on public repos: how to handle prompt-injection attempts from
+   issue bodies? (Design doc in progress; all other launch questions are
+   resolved in the locked-decisions table above.)

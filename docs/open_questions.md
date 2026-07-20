@@ -11,14 +11,14 @@ changes, scope decisions, anything security-sensitive). All 12 queued PRs from
 the autonomous run (#3, #15 replacing #4, #5–#14) were rebase-merged to main
 in stack order; every merge had green CI.
 
-## 2026-07-15 — Roadmap open questions still owner-less
+## ~~Roadmap open questions~~ — 3 of 4 RESOLVED 2026-07-19
 
-Carried from `docs/ROADMAP.md` (not blocking current M0 work, will block M2+):
+Erik decided: LLM cost control = hard per-task cap + one retry-with-bump;
+Autopilot access = earned via N successful Assisted merges; free tier = N
+completed tasks/month. Recorded in the ROADMAP locked-decisions table.
 
-1. LLM cost control model (hard per-task token budget vs adaptive).
-2. Autopilot trust ladder (earn autopilot vs opt-in) — affects M2 merge-gate design.
-3. Prompt-injection handling for Issue Triage on public repos — affects M3 design.
-4. Free tier shape (task count / repo count / trial) — affects M4 Stripe config.
+Still open: **prompt-injection handling for Issue Triage on public repos**
+(M3 design) — a design proposal will be drafted for Erik's review.
 
 ## 2026-07-15 — .env.example not updatable by agent
 
@@ -35,11 +35,12 @@ Postgres. Recommend: add a `postgres` service container to the CI workflow and
 an integration-test marker (`pytest -m integration`) exercising one durable
 workflow end-to-end before M2 builds the task pipeline on this foundation.
 
-## 2026-07-15 — IaC tooling never decided
+## ~~IaC tooling~~ — RESOLVED 2026-07-19
 
-The M0 item "Backend deployment target on AWS (API + workers), IaC from day
-one" is blocked on your Terraform vs. CDK vs. Pulumi preference (flagged during
-the stack research, never answered). Everything else in M0 is done.
+CloudFormation, following CloudZero/cz-standards conventions. The deployment
+work should read the repo's `infra-account-architecture`,
+`govern-tagging-policy`, `infra-ssm-parameters`, and `infra-vpc-networking`
+standards before writing templates.
 
 ## 2026-07-15 — Third-party account provisioning (M4)
 
