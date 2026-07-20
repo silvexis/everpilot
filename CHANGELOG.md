@@ -44,6 +44,13 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
   tasks, truncation-safe push parsing, honest 404-vs-outage error handling
 - Webhook deliveries are un-recorded when dispatch fails, so GitHub redeliveries
   are processed instead of dropped as duplicates
+- AWS deployment (M0): CloudFormation stacks (network, ECR, app, GitHub OIDC role)
+  following cz-standards patterns — ECS Fargate (API + in-process DBOS workers),
+  RDS Postgres, internet-facing ALB; `scripts/deploy.sh` with stack-level tagging
+  and batched SSM prerequisite checks; backend Dockerfile with in-VPC alembic
+  migrations at startup; cfn-lint in CI
+- Secrets load via a pydantic-settings SSM source directly into Settings (never
+  `os.environ`); `DATABASE_URL` composed from the live RDS endpoint + SSM password
 
 ### Fixed
 - Audit trail recorded the wrong `from` state on transitions (post-mutation aliasing

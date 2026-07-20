@@ -64,7 +64,11 @@ on this.
       to native AWS orchestration at scale stays tractable *(PR #8 —
       `EventDispatcher` protocol: inline for dev, DBOS queue when DATABASE_URL
       set; handlers stay engine-agnostic plain functions)*
-- [ ] Backend deployment target on AWS (API + workers), IaC from day one
+- [x] Backend deployment target on AWS (API + workers), IaC from day one
+      *(PR #20 — CloudFormation per cz-standards: network/ECR/app/OIDC stacks,
+      ECS Fargate (API+DBOS), RDS Postgres, SSM-source secrets, in-VPC alembic
+      migrations, `scripts/deploy.sh`, cfn-lint in CI. Account/domain choice
+      deferred to open_questions)*
 
 ## M1 — Agent engine spike ⚠ decision gate
 
