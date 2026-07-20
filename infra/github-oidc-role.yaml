@@ -1,0 +1,138 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: >-
+  One-time GitHub Actions OIDC deploy role (cz-standards cicd-internal-apps:
+  OIDC only, no static AWS keys; trust scoped to this repo's main branch).
+  Deploy once per account: aws cloudformation deploy --stack-name
+  github-oidc-everpilot --template-file infra/github-oidc-role.yaml
+  --capabilities CAPABILITY_NAMED_IAM. Store the RoleArn output as the
+  AWS_DEPLOY_ROLE_ARN repo secret.
+
+Parameters:
+  FeatureName:
+    Type: String
+    Default: everpilot
+  GitHubRepo:
+    Type: String
+    Default: silvexis/everpilot
+  CreateOidcProvider:
+    Type: String
+    Default: "true"
+    AllowedValues: ["true", "false"]
+    Description: false if the account already has the GitHub OIDC provider
+
+Conditions:
+  MakeProvider: !Equals [!Ref CreateOidcProvider, "true"]
+
+Resources:
+  OidcProvider:
+    Type: AWS::IAM::OIDCProvider
+    Condition: MakeProvider
+    Properties:
+      Url: https://token.actions.githubusercontent.com
+      ClientIdList:
+        - sts.amazonaws.com
+      ThumbprintList:
+        - 6938fd4d98bab03faadb97b34396831e3780aea1
+
+  DeployRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !Sub github-oidc-${FeatureName}
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Federated: !If
+                - MakeProvider
+                - !Ref OidcProvider
+                - !Sub arn:aws:iam::${AWS::AccountId}:oidc-provider/token.actions.githubusercontent.com
+            Action: sts:AssumeRoleWithWebIdentity
+            Condition:
+              StringEquals:
+                token.actions.githubusercontent.com:aud: sts.amazonaws.com
+                # main branch only, per cicd-internal-apps
+                token.actions.githubusercontent.com:sub: !Sub repo:${GitHubRepo}:ref:refs/heads/main
+      Policies:
+        - PolicyName: deploy
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Sid: CloudFormation
+                Effect: Allow
+                Action:
+                  - cloudformation:CreateChangeSet
+                  - cloudformation:DeleteChangeSet
+                  - cloudformation:DescribeChangeSet
+                  - cloudformation:DescribeStackEvents
+                  - cloudformation:DescribeStacks
+                  - cloudformation:ExecuteChangeSet
+                  - cloudformation:GetTemplateSummary
+                Resource: !Sub arn:aws:cloudformation:*:${AWS::AccountId}:stack/cz-*-${FeatureName}*/*
+              # CloudFormation calls these while creating/updating the stacks.
+              # Most AWS resource APIs are not ARN-scopeable on create (no ARN
+              # exists yet), so these stay Action-broad but are usable only via
+              # the cz-*-everpilot* CloudFormation stacks above, by a role only
+              # assumable from this repo's main branch. Delete/modify verbs are
+              # deliberately omitted where a resource-scoped variant exists.
+              - Sid: NetworkResources
+                Effect: Allow
+                Action:
+                  - ec2:*Vpc*
+                  - ec2:*Subnet*
+                  - ec2:*RouteTable*
+                  - ec2:*Route
+                  - ec2:*InternetGateway*
+                  - ec2:*NatGateway*
+                  - ec2:*Address*
+                  - ec2:*SecurityGroup*
+                  - ec2:*VpcEndpoint*
+                  - ec2:Describe*
+                  - ec2:*Tags
+                Resource: "*"
+              - Sid: ComputeAndData
+                Effect: Allow
+                Action:
+                  - ecs:*
+                  - ecr:*
+                  - elasticloadbalancing:*
+                  - rds:*
+                  - logs:*
+                  - cloudwatch:PutMetricAlarm
+                  - cloudwatch:DeleteAlarms
+                  - cloudwatch:DescribeAlarms
+                  - ssm:GetParameter
+                  - ssm:GetParameters
+                  - ssm:GetParametersByPath
+                Resource: "*"
+              - Sid: ServiceLinkedRoles
+                # First deploy in a fresh account creates these; scoped to the
+                # AWS service namespaces this stack actually uses.
+                Effect: Allow
+                Action: iam:CreateServiceLinkedRole
+                Resource: "*"
+                Condition:
+                  StringEquals:
+                    iam:AWSServiceName:
+                      - ecs.amazonaws.com
+                      - elasticloadbalancing.amazonaws.com
+                      - rds.amazonaws.com
+              - Sid: PassServiceRoles
+                Effect: Allow
+                Action:
+                  - iam:CreateRole
+                  - iam:DeleteRole
+                  - iam:GetRole
+                  - iam:PassRole
+                  - iam:PutRolePolicy
+                  - iam:DeleteRolePolicy
+                  - iam:AttachRolePolicy
+                  - iam:DetachRolePolicy
+                  - iam:TagRole
+                  - iam:UntagRole
+                Resource:
+                  - !Sub arn:aws:iam::${AWS::AccountId}:role/cz-*-${FeatureName}-*
+
+Outputs:
+  RoleArn:
+    Value: !GetAtt DeployRole.Arn

@@ -59,6 +59,19 @@ Root-directory lockfiles only (trigger and fetch deliberately agree on this),
 and files >1MB are skipped with a warning (GitHub contents-API limit — needs
 the git blobs API). Both are post-V1 unless design partners hit them early.
 
+## 2026-07-19 — AWS deployment: account, domains, NAT cost (needed to actually deploy)
+
+Templates and `scripts/deploy.sh` are complete and cfn-lint-clean, but a real
+deploy needs: (1) which AWS account/org Everpilot deploys into (it's a Silvexis
+product, so NOT a CloudZero cz-standards account — templates are account-
+agnostic and tags carry a mixed cz:owner=erik@cloudzero.com / cz:repo=silvexis
+identity that should be confirmed or corrected); (2) the domain names + ACM
+certs (`live`/`alfa`); (3) the NAT-gateway cost tradeoff — kept for the
+standards private-subnet posture (~$33/mo/namespace) but a fck-nat micro or
+public-subnet task would cut it ~10x. Also: the hardcoded `cz:` prefix and
+`aws-apn-id` (CloudZero's AWS Partner id) should become deploy.sh variables if
+this ships under Silvexis billing.
+
 ## 2026-07-19 — SECURITY: entire API is pre-auth; M4 must add tenancy enforcement
 
 Every endpoint (repos, tasks, rollback, and now the cross-org /api/v1/audit

@@ -6,6 +6,19 @@ on:
   pull_request:
 
 jobs:
+  infrastructure:
+    name: Infrastructure (cfn-lint)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - name: Set up uv
+        uses: astral-sh/setup-uv@v8.3.2
+      - name: Lint CloudFormation templates
+        # Pinned: an unpinned cfn-lint can red-line unrelated PRs when a new
+        # release adds rules. find (not a shell glob) catches nested + .yml too.
+        run: |
+          uvx cfn-lint@1.53.0 -- $(find infra -name '*.yaml' -o -name '*.yml')
+
   backend:
     name: Backend (Python)
     runs-on: ubuntu-latest

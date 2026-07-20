@@ -1,0 +1,44 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: >-
+  Everpilot container registry. Separate stack: the image must exist before
+  the app stack's ECS service can start (deploy order: ecr -> push -> app).
+
+Parameters:
+  FeatureName:
+    Type: String
+    Default: everpilot
+  Namespace:
+    Type: String
+    AllowedValues: [live, alfa]
+    Description: Per-namespace repo so alfa's churn can't expire live's pinned image
+
+Resources:
+  Repository:
+    Type: AWS::ECR::Repository
+    Properties:
+      RepositoryName: !Sub cz-${Namespace}-${FeatureName}-backend
+      ImageTagMutability: IMMUTABLE
+      ImageScanningConfiguration:
+        ScanOnPush: true
+      LifecyclePolicy:
+        LifecyclePolicyText: |
+          {
+            "rules": [
+              {
+                "rulePriority": 1,
+                "description": "Keep the most recent 20 images",
+                "selection": {
+                  "tagStatus": "any",
+                  "countType": "imageCountMoreThan",
+                  "countNumber": 20
+                },
+                "action": {"type": "expire"}
+              }
+            ]
+          }
+
+Outputs:
+  RepositoryUri:
+    Value: !GetAtt Repository.RepositoryUri
+    Export:
+      Name: !Sub ${AWS::StackName}-repository-uri

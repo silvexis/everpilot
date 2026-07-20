@@ -1,0 +1,310 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: >-
+  Everpilot application stack: ECS Fargate service (FastAPI API + in-process
+  DBOS workers), internet-facing ALB (GitHub webhooks must reach it), and RDS
+  Postgres in private subnets. Secrets resolve from SSM SecureString parameters
+  under /cz/{feature}/{namespace}/* per the cz-standards path scheme; the 11
+  required tags are applied stack-level by scripts/deploy.sh, not per-resource.
+  Deviation (documented in infra/README.md): Fargate instead of container
+  Lambda because DBOS Transact requires a long-lived process.
+
+Parameters:
+  FeatureName:
+    Type: String
+    Default: everpilot
+  Namespace:
+    Type: String
+    AllowedValues: [live, alfa]
+    Description: live = production, alfa = staging (cz-standards namespace scheme)
+  VpcId:
+    Type: AWS::EC2::VPC::Id
+  PublicSubnetIds:
+    Type: List<AWS::EC2::Subnet::Id>
+    Description: ALB subnets
+  PrivateSubnetIds:
+    Type: List<AWS::EC2::Subnet::Id>
+    Description: Service and database subnets
+  ImageUri:
+    Type: String
+    Description: Full ECR image URI including tag (immutable tags; no :latest)
+  CertificateArn:
+    Type: String
+    Default: ""
+    Description: ACM certificate for HTTPS; empty deploys HTTP-only (pre-domain bootstrap)
+  AlarmTopicArn:
+    Type: String
+    Default: ""
+    Description: SNS topic for CloudWatch alarm notifications (empty = alarm without actions)
+
+Conditions:
+  HasCertificate: !Not [!Equals [!Ref CertificateArn, ""]]
+  HasAlarmTopic: !Not [!Equals [!Ref AlarmTopicArn, ""]]
+  IsLive: !Equals [!Ref Namespace, live]
+
+Resources:
+  LogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub /ecs/cz-${Namespace}-${FeatureName}
+      RetentionInDays: 30
+
+  Cluster:
+    Type: AWS::ECS::Cluster
+    Properties:
+      ClusterName: !Sub cz-${Namespace}-${FeatureName}
+
+  AlbSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: Everpilot ALB ingress (GitHub webhooks + dashboard API)
+      VpcId: !Ref VpcId
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 443
+          ToPort: 443
+          CidrIp: 0.0.0.0/0
+        - IpProtocol: tcp
+          FromPort: 80
+          ToPort: 80
+          CidrIp: 0.0.0.0/0
+
+  ServiceSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: Everpilot service; ingress only from the ALB
+      VpcId: !Ref VpcId
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 8000
+          ToPort: 8000
+          SourceSecurityGroupId: !Ref AlbSecurityGroup
+
+  DbSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: Everpilot Postgres; ingress only from the service
+      VpcId: !Ref VpcId
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 5432
+          ToPort: 5432
+          SourceSecurityGroupId: !Ref ServiceSecurityGroup
+
+  DbSubnetGroup:
+    Type: AWS::RDS::DBSubnetGroup
+    Properties:
+      DBSubnetGroupDescription: Everpilot private subnets
+      SubnetIds: !Ref PrivateSubnetIds
+
+  Database:
+    Type: AWS::RDS::DBInstance
+    DeletionPolicy: Snapshot
+    UpdateReplacePolicy: Snapshot
+    Properties:
+      Engine: postgres
+      EngineVersion: "17.7"
+      DBInstanceClass: db.t4g.micro
+      AllocatedStorage: "20"
+      StorageType: gp3
+      DBName: everpilot
+      MasterUsername: everpilot
+      # SecureString under the cz-standards path scheme; created by deploy.sh
+      # prerequisites (see infra/ssm-prereqs.conf). Never an env var or file.
+      MasterUserPassword: !Sub "{{resolve:ssm-secure:/cz/${FeatureName}/${Namespace}/db-master-password}}"
+      VPCSecurityGroups:
+        - !Ref DbSecurityGroup
+      DBSubnetGroupName: !Ref DbSubnetGroup
+      PubliclyAccessible: false
+      StorageEncrypted: true
+      BackupRetentionPeriod: 7
+      AutoMinorVersionUpgrade: true
+
+  LoadBalancer:
+    Type: AWS::ElasticLoadBalancingV2::LoadBalancer
+    Properties:
+      Type: application
+      Scheme: internet-facing
+      Subnets: !Ref PublicSubnetIds
+      SecurityGroups:
+        - !Ref AlbSecurityGroup
+
+  TargetGroup:
+    Type: AWS::ElasticLoadBalancingV2::TargetGroup
+    Properties:
+      VpcId: !Ref VpcId
+      Port: 8000
+      Protocol: HTTP
+      TargetType: ip
+      HealthCheckPath: /api/v1/health
+      HealthCheckIntervalSeconds: 30
+      HealthyThresholdCount: 2
+      UnhealthyThresholdCount: 3
+      TargetGroupAttributes:
+        - Key: deregistration_delay.timeout_seconds
+          Value: "30"
+
+  HttpsListener:
+    Type: AWS::ElasticLoadBalancingV2::Listener
+    Condition: HasCertificate
+    Properties:
+      LoadBalancerArn: !Ref LoadBalancer
+      Port: 443
+      Protocol: HTTPS
+      Certificates:
+        - CertificateArn: !Ref CertificateArn
+      DefaultActions:
+        - Type: forward
+          TargetGroupArn: !Ref TargetGroup
+
+  # HTTP always forwards to the target group so the group is stably associated
+  # with the ALB via an unconditional listener — the ECS service can DependsOn
+  # this alone (no conditional DependsOn, which CFN rejects) without racing
+  # "target group not associated". When a cert exists, HTTPS forwards too; a
+  # host-based HTTP→HTTPS redirect can be layered on later as a ListenerRule.
+  HttpListener:
+    Type: AWS::ElasticLoadBalancingV2::Listener
+    Properties:
+      LoadBalancerArn: !Ref LoadBalancer
+      Port: 80
+      Protocol: HTTP
+      DefaultActions:
+        - Type: forward
+          TargetGroupArn: !Ref TargetGroup
+
+  ExecutionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !Sub cz-${Namespace}-${FeatureName}-execution-role
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: ecs-tasks.amazonaws.com
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy
+
+  TaskRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !Sub cz-${Namespace}-${FeatureName}-task-role
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: ecs-tasks.amazonaws.com
+            Action: sts:AssumeRole
+      Policies:
+        - PolicyName: app-parameters
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              # Path-scoped per infra-ssm-parameters: /cz/<feature>/* covers
+              # every namespace; never /cz/*
+              - Effect: Allow
+                Action:
+                  - ssm:GetParameter
+                  - ssm:GetParameters
+                  - ssm:GetParametersByPath
+                Resource: !Sub arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/cz/${FeatureName}/*
+                Condition:
+                  Bool:
+                    aws:SecureTransport: "true"
+              - Effect: Allow
+                Action: kms:Decrypt
+                Resource: !Sub arn:aws:kms:${AWS::Region}:${AWS::AccountId}:key/*
+                Condition:
+                  StringEquals:
+                    kms:ViaService: !Sub ssm.${AWS::Region}.amazonaws.com
+
+  TaskDefinition:
+    Type: AWS::ECS::TaskDefinition
+    Properties:
+      Family: !Sub cz-${Namespace}-${FeatureName}
+      RequiresCompatibilities: [FARGATE]
+      NetworkMode: awsvpc
+      Cpu: "512"
+      Memory: "1024"
+      ExecutionRoleArn: !GetAtt ExecutionRole.Arn
+      TaskRoleArn: !GetAtt TaskRole.Arn
+      RuntimePlatform:
+        CpuArchitecture: ARM64
+        OperatingSystemFamily: LINUX
+      ContainerDefinitions:
+        - Name: backend
+          Image: !Ref ImageUri
+          PortMappings:
+            - ContainerPort: 8000
+              Protocol: tcp
+          Environment:
+            # App reads secrets from SSM at startup via its pydantic settings
+            # source (EVERPILOT_SSM_CONFIG); only non-secret wiring is passed here.
+            # DB_HOST lets the app compose DATABASE_URL from the live RDS endpoint
+            # instead of a hand-maintained (drift-prone) database-url parameter.
+            - Name: EVERPILOT_SSM_CONFIG
+              Value: "true"
+            - Name: APP_ENV
+              Value: !If [IsLive, production, staging]
+            - Name: CZ_FEATURE
+              Value: !Ref FeatureName
+            - Name: CZ_NAMESPACE
+              Value: !Ref Namespace
+            - Name: DB_HOST
+              Value: !GetAtt Database.Endpoint.Address
+          LogConfiguration:
+            LogDriver: awslogs
+            Options:
+              awslogs-group: !Ref LogGroup
+              awslogs-region: !Ref AWS::Region
+              awslogs-stream-prefix: backend
+
+  Service:
+    Type: AWS::ECS::Service
+    DependsOn: HttpListener  # always forwards to the TG; associates it with the ALB
+    Properties:
+      ServiceName: !Sub cz-${Namespace}-${FeatureName}
+      Cluster: !Ref Cluster
+      LaunchType: FARGATE
+      DesiredCount: 1
+      TaskDefinition: !Ref TaskDefinition
+      HealthCheckGracePeriodSeconds: 60
+      NetworkConfiguration:
+        AwsvpcConfiguration:
+          AssignPublicIp: DISABLED
+          Subnets: !Ref PrivateSubnetIds
+          SecurityGroups:
+            - !Ref ServiceSecurityGroup
+      LoadBalancers:
+        - ContainerName: backend
+          ContainerPort: 8000
+          TargetGroupArn: !Ref TargetGroup
+
+  Alb5xxAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmDescription: Everpilot ALB 5xx rate
+      Namespace: AWS/ApplicationELB
+      MetricName: HTTPCode_ELB_5XX_Count
+      Dimensions:
+        - Name: LoadBalancer
+          Value: !GetAtt LoadBalancer.LoadBalancerFullName
+      Statistic: Sum
+      Period: 300
+      EvaluationPeriods: 1
+      Threshold: 10
+      ComparisonOperator: GreaterThanThreshold
+      TreatMissingData: notBreaching
+      AlarmActions: !If [HasAlarmTopic, [!Ref AlarmTopicArn], !Ref "AWS::NoValue"]
+      OKActions: !If [HasAlarmTopic, [!Ref AlarmTopicArn], !Ref "AWS::NoValue"]
+
+Outputs:
+  LoadBalancerDnsName:
+    Value: !GetAtt LoadBalancer.DNSName
+  ClusterName:
+    Value: !Ref Cluster
+  ServiceName:
+    Value: !GetAtt Service.Name
+  DatabaseEndpoint:
+    Value: !GetAtt Database.Endpoint.Address
