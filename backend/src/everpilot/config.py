@@ -13,6 +13,22 @@ from pydantic_settings import (
 logger = logging.getLogger(__name__)
 
 
+def ssm_config_target() -> tuple[str, str] | None:
+    """(feature, namespace) when SSM config is enabled, else None.
+
+    Enabled explicitly by the ECS task (EVERPILOT_SSM_CONFIG), never inferred
+    from ambient vars. Raises if enabled but the namespace is missing — a
+    misconfigured deployment should fail loudly, not silently pick a default.
+    Single source of truth for the SSM feature/namespace pair.
+    """
+    if os.environ.get("EVERPILOT_SSM_CONFIG", "").lower() not in ("1", "true"):
+        return None
+    namespace = os.environ.get("CZ_NAMESPACE", "")
+    if not namespace:
+        raise RuntimeError("EVERPILOT_SSM_CONFIG is set but CZ_NAMESPACE is missing")
+    return os.environ.get("CZ_FEATURE", "everpilot"), namespace
+
+
 class SsmParameterSource(PydanticBaseSettingsSource):
     """Settings source reading SSM SecureStrings under /cz/{feature}/{namespace}/.
 
@@ -27,15 +43,13 @@ class SsmParameterSource(PydanticBaseSettingsSource):
 
     @staticmethod
     def enabled() -> bool:
-        return os.environ.get("EVERPILOT_SSM_CONFIG", "").lower() in ("1", "true")
+        return ssm_config_target() is not None
 
     def __call__(self) -> dict[str, Any]:
-        if not self.enabled():
+        target = ssm_config_target()
+        if target is None:
             return {}
-        feature = os.environ.get("CZ_FEATURE", "everpilot")
-        namespace = os.environ.get("CZ_NAMESPACE", "")
-        if not namespace:
-            raise RuntimeError("EVERPILOT_SSM_CONFIG is set but CZ_NAMESPACE is missing")
+        feature, namespace = target
         prefix = f"/cz/{feature}/{namespace}/"
 
         import boto3  # only deployments (uv --extra aws images) reach this import
@@ -106,6 +120,10 @@ class Settings(BaseSettings):
 
     # Agent engine (M1+)
     anthropic_api_key: str = ""
+
+    # Interim admin-API guard until WorkOS employee SSO (M4); empty = admin
+    # endpoints disabled (fail closed)
+    admin_token: str = ""
 
     @model_validator(mode="after")
     def compose_database_url(self) -> "Settings":

@@ -113,7 +113,38 @@ M4 needs accounts + API keys only you can create: WorkOS (AuthKit), Stripe
 sandbox keys exist. Without them, M4 items will be stubbed behind interfaces
 like the agent engine is.
 
-## 2026-07-15 — Anthropic API credentials
+## 2026-07-25 — LLM key management: interim-admin hardening for M4
 
-M1 spike and all agent execution need an Anthropic API key provisioned for the
-project (and a decision on org account vs personal). Not needed for M0.
+PR #22 shipped the key layer with an interim shared-token admin guard. A code
+review surfaced hardening that belongs with M4 (WorkOS employee SSO), not the
+stopgap:
+
+- **Admin token rotation needs a restart** — read from cached settings. For an
+  emergency-revocation credential, live reads or short-TTL caching are better;
+  acceptable while the token is off by default (fail-closed 503) and rotated via
+  redeploy. Do NOT enable the admin token until the ALB has TLS.
+- **Per-org BYOK keys in SSM are unbounded-cardinality** — SSM standard-param
+  limits (~10k/account) and no caching. At scale, move BYOK keys to a
+  KMS-encrypted DB column (or Secrets Manager) and cache platform-key reads.
+- **No org-existence check on BYOK PUT** — a typo'd org id creates an orphan
+  key; validate against the installation store once M4 wiring exists.
+- **`settings.anthropic_api_key` is a second read path** — the M1 engine MUST
+  call `app.state.llm_key_store.resolve()` (BYOK + uplift aware), never the
+  settings field, which is boot-cached and bypasses BYOK. Deprecate the field
+  when M1 lands.
+- **Admin surface shares the pre-auth internet exposure** — mitigated by
+  fail-closed default, `include_in_schema=False`, and the TLS warning above;
+  real fix is M4 SSO + network restriction.
+
+## 2026-07-25 — Anthropic API credentials (channel now built; key still needed)
+
+Decided: platform key managed via an admin-only interface (Silvexis employees);
+customer usage on it bills at cost + 20%; orgs may BYOK and pay no LLM costs.
+PR #22 shipped the backend: SSM-backed key stores, BYOK→platform resolution,
+uplift math, and admin endpoints behind an interim admin token (fail-closed).
+
+Still needed from Erik to unblock M1: **the actual key** (org vs personal
+account decision), provided via `backend/.env` locally or
+`aws ssm put-parameter --name /cz/everpilot/<ns>/anthropic-api-key` (or the
+admin API once a token is set) — never pasted in chat. The admin *frontend*
+page is deferred until WorkOS employee SSO exists (M4).

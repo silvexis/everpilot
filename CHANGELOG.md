@@ -51,6 +51,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
   migrations at startup; cfn-lint in CI
 - Secrets load via a pydantic-settings SSM source directly into Settings (never
   `os.environ`); `DATABASE_URL` composed from the live RDS endpoint + SSM password
+- LLM key management: SSM-backed platform + per-org BYOK key stores with
+  BYOK-first resolution; billing uplift math (platform usage = cost + 20%,
+  BYOK = zero); Silvexis-admin API (`/api/v1/admin/llm-key`, org BYOK CRUD)
+  behind a fail-closed interim admin token, keys always masked in responses
 
 ### Fixed
 - Audit trail recorded the wrong `from` state on transitions (post-mutation aliasing
