@@ -35,6 +35,7 @@ action in an audit trail, and get billed for the work performed.
 | Autopilot access | Earned: a repo needs N successful Assisted merges (default 5) before Autopilot can be enabled |
 | LLM cost control | Hard per-task token cap by capability type; one automatic retry at a higher cap on overrun, then visible task failure |
 | Free tier | N completed tasks/month free (default 10), then usage-priced — aligns 1:1 with the Stripe billing meter |
+| LLM key management | Platform Anthropic key set via a Silvexis-admin-only UI; customer usage on it bills at **cost + 20% uplift**. Orgs may **BYOK** (bring their own key) and pay no LLM costs through Everpilot. Decided 2026-07-25 |
 
 ---
 
@@ -153,7 +154,12 @@ Both capabilities are thin layers over the M2 pipeline.
 - [ ] Self-serve onboarding: sign up → install GitHub App → pick repos → toggle
       capabilities and modes
 - [ ] Usage metering: every completed task and merged PR recorded as a billable
-      event
+      event, including LLM cost pass-through (platform key: cost + 20% uplift;
+      BYOK: zero) *(PR #22 — key stores, resolution order, uplift math, and
+      admin API shipped; metering events themselves still Stripe-gated)*
+- [ ] Admin UI (Silvexis employees only): platform LLM key management page
+      *(backend endpoints shipped in PR #22 behind an interim admin token,
+      fail-closed; the frontend page and real employee SSO land with WorkOS)*
 - [ ] Stripe integration: Billing Meters with per-event `identifier` idempotency;
       free monthly allowance as a $0 first pricing tier; payment method management
 - [ ] Spend controls: per-org monthly budget cap that pauses agents when hit,

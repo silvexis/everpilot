@@ -7,7 +7,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from everpilot import __description__, __version__
 from everpilot.api import api_router
-from everpilot.config import get_settings
+from everpilot.config import get_settings, ssm_config_target
 from everpilot.db import InMemoryRepoConfigStore, PostgresRepoConfigStore, create_pool
 from everpilot.db.audit_recorder import AuditRecorder
 from everpilot.db.deliveries import InMemoryWebhookDeliveryStore, PostgresWebhookDeliveryStore
@@ -19,6 +19,7 @@ from everpilot.db.tasks import (
     PostgresTaskStore,
 )
 from everpilot.github.installations import InstallationService
+from everpilot.llm import InMemoryLlmKeyStore
 from everpilot.orchestration import InlineEventDispatcher
 from everpilot.pipeline import TaskPipeline
 
@@ -96,10 +97,25 @@ def create_app() -> FastAPI:
         version=__version__,
         docs_url="/docs" if settings.debug else None,
         redoc_url="/redoc" if settings.debug else None,
+        # Off in prod so the schema (incl. the admin surface) isn't enumerable
+        openapi_url="/openapi.json" if settings.debug else None,
         lifespan=lifespan,
     )
 
-    # Default stores; the lifespan swaps in Postgres when DATABASE_URL is set
+    # Default stores; the lifespan swaps in Postgres when DATABASE_URL is set.
+    # LLM keys: SSM-backed in deployments (single source of truth, live reads),
+    # in-memory locally (seeded from .env). Note: a DATABASE_URL-but-no-SSM
+    # deployment keeps the in-memory store — fine at DesiredCount=1; a DB-backed
+    # store is the M4 shape (docs/open_questions.md).
+    ssm_target = ssm_config_target()
+    if ssm_target is not None:
+        from everpilot.llm import SsmLlmKeyStore
+
+        app.state.llm_key_store = SsmLlmKeyStore(*ssm_target)
+    else:
+        app.state.llm_key_store = InMemoryLlmKeyStore(
+            platform_key=settings.anthropic_api_key or None
+        )
     app.state.repo_store = InMemoryRepoConfigStore()
     app.state.webhook_deliveries = InMemoryWebhookDeliveryStore()
     app.state.installation_store = InMemoryInstallationStore()

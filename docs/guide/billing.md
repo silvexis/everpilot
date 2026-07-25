@@ -38,6 +38,19 @@ Each completed task and merged PR is recorded as a billable event with an
 idempotency key, so retries and webhook redeliveries never double-count. You can
 review every billable event against the audit trail.
 
+## How are AI (LLM) costs handled?
+
+Everpilot's agents use Anthropic's Claude models. Two options:
+
+- **Platform key (default)**: your tasks run on Everpilot's own Anthropic
+  account, and the LLM cost of your usage is passed through on your invoice at
+  **cost plus a 20% uplift** — metered per task, visible per billable event.
+- **Bring your own key (BYOK)**: connect your organization's own Anthropic API
+  key and pay Anthropic directly — Everpilot then charges **no LLM costs at
+  all**; you pay only the per-task price. Your key is stored encrypted, is
+  never displayed back once saved, and can be removed at any time (your org
+  then falls back to the platform key).
+
 ## What payment methods are supported?
 
 Card payment via Stripe, managed from the dashboard billing page.

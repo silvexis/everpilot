@@ -203,12 +203,27 @@ Resources:
             Statement:
               # Path-scoped per infra-ssm-parameters: /cz/<feature>/* covers
               # every namespace; never /cz/*
+              # Reads: broad across the feature path (the settings loader slurps
+              # all config params for this namespace).
               - Effect: Allow
                 Action:
                   - ssm:GetParameter
                   - ssm:GetParameters
                   - ssm:GetParametersByPath
                 Resource: !Sub arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/cz/${FeatureName}/*
+                Condition:
+                  Bool:
+                    aws:SecureTransport: "true"
+              # Writes: least-privilege — only the LLM-key parameters the admin
+              # API manages, only this namespace. The app cannot rewrite its own
+              # bootstrap secrets (admin-token, secret-key, github-app-*, db pw).
+              - Effect: Allow
+                Action:
+                  - ssm:PutParameter
+                  - ssm:DeleteParameter
+                Resource:
+                  - !Sub arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/cz/${FeatureName}/${Namespace}/anthropic-api-key
+                  - !Sub arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/cz/${FeatureName}/${Namespace}/org-keys/*
                 Condition:
                   Bool:
                     aws:SecureTransport: "true"
